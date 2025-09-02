@@ -50,6 +50,9 @@ class OptionsManager {
             e.preventDefault();
             this.showHelp();
         });
+
+        // Policy manager
+        document.getElementById('openPolicyManager').addEventListener('click', () => this.openPolicyManager());
     }
 
     async loadSettings() {
@@ -432,10 +435,17 @@ class OptionsManager {
 
 ## Features
 - **Content Highlighting**: Automatically highlights potential violations
+- **AI Analysis**: Gemini-powered content analysis with custom policies
 - **Quick Actions**: Flag, escalate, or block content with one click
 - **Custom Rules**: Create your own moderation rules
 - **Well-being**: Break reminders and mindful moments
 - **Reporting**: Generate detailed moderation reports
+
+## AI-Powered Analysis
+- Configure Gemini API for advanced content analysis
+- Create custom policies for specific needs
+- URL context analysis for comprehensive detection
+- Confidence scoring and detailed explanations
 
 ## Keyboard Shortcuts
 - Ctrl+Shift+F: Flag selected content
@@ -447,6 +457,12 @@ For more help, visit our documentation or contact support.
         `;
         
         alert(helpContent);
+    }
+
+    openPolicyManager() {
+        chrome.tabs.create({
+            url: chrome.runtime.getURL('policy-manager.html')
+        });
     }
 
     showNotification(message, type = 'success') {

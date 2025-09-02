@@ -5,12 +5,17 @@ class ContentModerator {
         this.highlightedElements = [];
         this.toxicityScore = 0;
         this.isActive = true;
+        this.geminiAnalyzer = null;
+        this.analysisMode = 'automatic';
+        this.aiAnalysisResults = null;
         
         this.init();
     }
 
     async init() {
         await this.loadRules();
+        await this.loadSettings();
+        await this.initializeGeminiAnalyzer();
         this.setupMessageListener();
         this.analyzePage();
         this.createFloatingToolbar();
@@ -81,6 +86,29 @@ class ContentModerator {
         }
     }
 
+    async loadSettings() {
+        try {
+            const result = await chrome.storage.sync.get(['policyManagerSettings']);
+            if (result.policyManagerSettings) {
+                this.analysisMode = result.policyManagerSettings.analysisMode || 'automatic';
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error);
+        }
+    }
+
+    async initializeGeminiAnalyzer() {
+        try {
+            // Check if Gemini analyzer is available
+            if (typeof GeminiContentAnalyzer !== 'undefined') {
+                this.geminiAnalyzer = new GeminiContentAnalyzer();
+                await this.geminiAnalyzer.init();
+            }
+        } catch (error) {
+            console.error('Error initializing Gemini analyzer:', error);
+        }
+    }
+
     setupMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             switch (request.action) {
@@ -103,18 +131,33 @@ class ContentModerator {
                     this.toggleHighlighting();
                     sendResponse({ success: true, active: this.isActive });
                     break;
+                case 'analyzeWithAI':
+                    this.performAIAnalysis().then(result => sendResponse(result));
+                    return true; // Keep message channel open for async response
+                case 'getAIAnalysis':
+                    sendResponse({ analysis: this.aiAnalysisResults });
+                    break;
                 default:
                     sendResponse({ success: false, error: 'Unknown action' });
             }
         });
     }
 
-    analyzePage() {
+    async analyzePage() {
         if (!this.isActive) return;
 
         this.clearHighlights();
-        this.highlightContent();
-        this.calculateToxicityScore();
+        
+        // Perform analysis based on mode
+        if (this.analysisMode === 'ai_only' || this.analysisMode === 'automatic') {
+            await this.performAIAnalysis();
+        }
+        
+        if (this.analysisMode === 'rules_only' || this.analysisMode === 'automatic') {
+            this.highlightContent();
+            this.calculateToxicityScore();
+        }
+        
         this.detectUserInfo();
     }
 
@@ -541,6 +584,159 @@ class ContentModerator {
         if (userElement) {
             this.performQuickAction('block', { name: 'User Block', severity: 'high' });
         }
+    }
+
+    async performAIAnalysis() {
+        if (!this.geminiAnalyzer || !this.geminiAnalyzer.isConfigured()) {
+            console.log('Gemini analyzer not configured, skipping AI analysis');
+            return { success: false, error: 'AI analyzer not configured' };
+        }
+
+        try {
+            // Get page content
+            const pageContent = await this.geminiAnalyzer.extractPageContent();
+            const urlContext = await this.geminiAnalyzer.getURLContext(window.location.href);
+            
+            // Perform AI analysis
+            const analysis = await this.geminiAnalyzer.analyzeContent(
+                pageContent.text, 
+                window.location.href, 
+                urlContext
+            );
+
+            this.aiAnalysisResults = analysis;
+            
+            // Highlight AI-detected violations
+            if (analysis.violations && analysis.violations.length > 0) {
+                this.highlightAIViolations(analysis.violations);
+            }
+
+            // Update toxicity score
+            this.toxicityScore = analysis.overall_toxicity_score || 0;
+
+            return { success: true, analysis: analysis };
+        } catch (error) {
+            console.error('Error performing AI analysis:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    highlightAIViolations(violations) {
+        violations.forEach(violation => {
+            if (violation.violating_text && violation.start_index !== undefined && violation.end_index !== undefined) {
+                this.highlightAIViolation(violation);
+            }
+        });
+    }
+
+    highlightAIViolation(violation) {
+        const textNodes = this.getTextNodes();
+        const violationText = violation.violating_text.toLowerCase();
+        
+        textNodes.forEach(node => {
+            const nodeText = node.textContent.toLowerCase();
+            const index = nodeText.indexOf(violationText);
+            
+            if (index !== -1) {
+                const parent = node.parentElement;
+                if (!parent || parent.classList.contains('ai-violation-highlight')) return;
+
+                const wrapper = document.createElement('span');
+                wrapper.className = 'ai-violation-highlight';
+                wrapper.style.cssText = `
+                    background-color: ${this.getViolationColor(violation.severity)}40;
+                    border: 2px solid ${this.getViolationColor(violation.severity)};
+                    border-radius: 3px;
+                    padding: 1px 2px;
+                    margin: 0 1px;
+                    position: relative;
+                    cursor: pointer;
+                `;
+
+                wrapper.setAttribute('data-violation-id', violation.policy);
+                wrapper.setAttribute('data-severity', violation.severity);
+                wrapper.setAttribute('data-confidence', violation.confidence);
+                wrapper.setAttribute('data-explanation', violation.explanation);
+
+                // Add tooltip
+                wrapper.title = `AI Detected: ${violation.policy} (${violation.severity}, ${violation.confidence}% confidence)`;
+
+                // Wrap the text node
+                textNode.parentNode.insertBefore(wrapper, textNode);
+                wrapper.appendChild(textNode);
+
+                // Add click handler for AI violation details
+                wrapper.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showAIViolationDetails(e, violation);
+                });
+
+                this.highlightedElements.push(wrapper);
+            }
+        });
+    }
+
+    getViolationColor(severity) {
+        const colors = {
+            low: '#4caf50',
+            medium: '#ff9800',
+            high: '#f44336'
+        };
+        return colors[severity] || '#ff9800';
+    }
+
+    showAIViolationDetails(event, violation) {
+        // Remove existing AI violation details
+        const existing = document.querySelector('.ai-violation-details');
+        if (existing) {
+            existing.remove();
+        }
+
+        const details = document.createElement('div');
+        details.className = 'ai-violation-details';
+        details.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 300px;
+            max-width: 400px;
+            padding: 12px;
+        `;
+
+        details.innerHTML = `
+            <div class="violation-header">
+                <h4>AI Detected Violation</h4>
+                <div class="violation-meta">
+                    <span class="severity ${violation.severity}">${violation.severity}</span>
+                    <span class="confidence">${violation.confidence}% confidence</span>
+                </div>
+            </div>
+            <div class="violation-content">
+                <p><strong>Policy:</strong> ${violation.policy}</p>
+                <p><strong>Explanation:</strong> ${violation.explanation}</p>
+                <p><strong>Violating Text:</strong> "${violation.violating_text}"</p>
+            </div>
+            <div class="violation-actions">
+                <button class="btn btn-small btn-primary" onclick="this.closest('.ai-violation-details').remove()">
+                    Close
+                </button>
+                <button class="btn btn-small btn-secondary" onclick="navigator.clipboard.writeText('${violation.explanation}')">
+                    Copy Details
+                </button>
+            </div>
+        `;
+
+        event.target.appendChild(details);
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', () => details.remove(), { once: true });
+        }, 100);
     }
 }
 

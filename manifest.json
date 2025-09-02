@@ -24,7 +24,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["gemini-analyzer.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_end"
     }
@@ -66,7 +66,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["moderation-dashboard.html"],
+      "resources": ["moderation-dashboard.html", "policy-manager.html"],
       "matches": ["<all_urls>"]
     }
   ],

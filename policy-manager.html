@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Manager - Content Moderation Assistant</title>
+    <link rel="stylesheet" href="policy-manager.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Policy Manager</h1>
+            <p class="subtitle">Configure AI-powered content analysis policies</p>
+            <div class="header-actions">
+                <button id="backToOptions" class="btn btn-secondary">← Back to Settings</button>
+                <button id="testAnalysis" class="btn btn-primary">Test Analysis</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- API Configuration -->
+            <section class="api-section">
+                <h2>Gemini API Configuration</h2>
+                <div class="api-config">
+                    <div class="config-item">
+                        <label for="apiKey">Gemini API Key:</label>
+                        <div class="input-group">
+                            <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
+                            <button id="toggleApiKey" class="btn btn-small">Show</button>
+                        </div>
+                        <p class="help-text">
+                            Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                        </p>
+                    </div>
+                    <div class="config-item">
+                        <button id="saveApiKey" class="btn btn-primary">Save API Key</button>
+                        <button id="testApiKey" class="btn btn-secondary">Test Connection</button>
+                    </div>
+                    <div id="apiStatus" class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Not configured</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- General Policies -->
+            <section class="policies-section">
+                <h2>General Trust & Safety Policies</h2>
+                <p class="section-description">
+                    These are standard content moderation policies based on industry best practices.
+                </p>
+                <div id="generalPolicies" class="policies-grid">
+                    <!-- General policies will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Custom Policies -->
+            <section class="policies-section">
+                <h2>Custom Policies</h2>
+                <p class="section-description">
+                    Create your own policies for specific content types or organizational needs.
+                </p>
+                <div class="policies-header">
+                    <button id="addCustomPolicy" class="btn btn-primary">Add Custom Policy</button>
+                    <button id="importPolicies" class="btn btn-secondary">Import Policies</button>
+                    <button id="exportPolicies" class="btn btn-secondary">Export Policies</button>
+                </div>
+                <div id="customPolicies" class="policies-grid">
+                    <!-- Custom policies will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Analysis Settings -->
+            <section class="analysis-section">
+                <h2>Analysis Settings</h2>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label for="analysisMode">Analysis Mode:</label>
+                        <select id="analysisMode">
+                            <option value="automatic">Automatic (AI + Rules)</option>
+                            <option value="ai_only">AI Only (Gemini)</option>
+                            <option value="rules_only">Rules Only (Keyword-based)</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="confidenceThreshold">Confidence Threshold:</label>
+                        <input type="range" id="confidenceThreshold" min="50" max="95" value="75">
+                        <span id="confidenceValue">75%</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="maxContentLength">Max Content Length:</label>
+                        <input type="number" id="maxContentLength" min="1000" max="10000" value="4000">
+                        <span>characters</span>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="enableContextAnalysis" checked>
+                            Enable URL Context Analysis
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="enableScreenshotAnalysis" checked>
+                            Include Screenshots in Analysis
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Analysis -->
+            <section class="test-section">
+                <h2>Test Analysis</h2>
+                <div class="test-content">
+                    <div class="test-input">
+                        <label for="testUrl">Test URL:</label>
+                        <input type="url" id="testUrl" placeholder="https://example.com">
+                        <button id="analyzeUrl" class="btn btn-primary">Analyze URL</button>
+                    </div>
+                    <div class="test-input">
+                        <label for="testContent">Or Test Content:</label>
+                        <textarea id="testContent" rows="5" placeholder="Enter content to analyze..."></textarea>
+                        <button id="analyzeContent" class="btn btn-primary">Analyze Content</button>
+                    </div>
+                </div>
+                <div id="testResults" class="test-results">
+                    <!-- Test results will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Policy Editor Modal -->
+    <div id="policyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Custom Policy</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="policyName">Policy Name:</label>
+                    <input type="text" id="policyName" placeholder="e.g., Company Brand Guidelines">
+                </div>
+                <div class="form-group">
+                    <label for="policyDescription">Description:</label>
+                    <textarea id="policyDescription" rows="3" placeholder="Describe what this policy covers..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="policySeverity">Severity Level:</label>
+                    <select id="policySeverity">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="policyExamples">Examples (one per line):</label>
+                    <textarea id="policyExamples" rows="4" placeholder="Example 1&#10;Example 2&#10;Example 3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="policyEnabled" checked>
+                        Enable this policy
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="savePolicy" class="btn btn-primary">Save Policy</button>
+                <button id="cancelPolicy" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="policy-manager.js"></script>
+</body>
+</html>
