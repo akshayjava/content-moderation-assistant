@@ -23,6 +23,7 @@ class ModerationPopup {
         this.setupEventListeners();
         this.updateUI();
         this.startMetricsTracking();
+        this.startMetricsRefresh();
     }
 
     setupEventListeners() {
@@ -39,6 +40,7 @@ class ModerationPopup {
         document.getElementById('openSettings').addEventListener('click', () => this.openSettings());
         document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
         document.getElementById('toggleImageFilter').addEventListener('click', () => this.toggleImageFilter());
+        document.getElementById('refreshMetrics').addEventListener('click', () => this.refreshMetrics());
 
         // Mindful moment
         document.getElementById('mindfulMoment').addEventListener('click', () => this.showMindfulMoment());
@@ -58,7 +60,21 @@ class ModerationPopup {
             });
 
             if (response && response.success) {
-                this.updateMetrics(action);
+                // Send action to background script for proper tracking
+                await chrome.runtime.sendMessage({
+                    type: 'moderationAction',
+                    data: {
+                        action: action,
+                        content: 'Manual action from popup',
+                        url: tab.url,
+                        timestamp: Date.now()
+                    }
+                });
+                
+                // Refresh metrics from background script
+                await this.loadMetrics();
+                this.updateMetricsDisplay();
+                
                 this.showNotification(`${action.charAt(0).toUpperCase() + action.slice(1)} action performed successfully`);
             } else {
                 this.showNotification(`Failed to perform ${action} action`, 'error');
@@ -69,16 +85,7 @@ class ModerationPopup {
         }
     }
 
-    updateMetrics(action) {
-        this.metrics.itemsReviewed++;
-        
-        if (action === 'flag' || action === 'escalate' || action === 'block') {
-            this.metrics.violationsFound++;
-        }
-
-        this.saveMetrics();
-        this.updateMetricsDisplay();
-    }
+    // updateMetrics method removed - now using background script metrics
 
     updateMetricsDisplay() {
         document.getElementById('itemsReviewed').textContent = this.metrics.itemsReviewed;
@@ -188,9 +195,26 @@ class ModerationPopup {
 
     async loadMetrics() {
         try {
-            const result = await chrome.storage.local.get(['moderationMetrics']);
-            if (result.moderationMetrics) {
-                this.metrics = { ...this.metrics, ...result.moderationMetrics };
+            // Get today's metrics from background script
+            const today = new Date().toDateString();
+            const result = await chrome.storage.local.get(['dailyMetrics']);
+            
+            if (result.dailyMetrics && result.dailyMetrics[today]) {
+                const todayMetrics = result.dailyMetrics[today];
+                this.metrics = {
+                    itemsReviewed: todayMetrics.itemsReviewed || 0,
+                    violationsFound: todayMetrics.violationsFound || 0,
+                    totalTime: todayMetrics.totalTime || 0,
+                    startTime: todayMetrics.startTime || Date.now()
+                };
+            } else {
+                // Initialize with default values
+                this.metrics = {
+                    itemsReviewed: 0,
+                    violationsFound: 0,
+                    totalTime: 0,
+                    startTime: Date.now()
+                };
             }
         } catch (error) {
             console.error('Error loading metrics:', error);
@@ -199,7 +223,24 @@ class ModerationPopup {
 
     async saveMetrics() {
         try {
-            await chrome.storage.local.set({ moderationMetrics: this.metrics });
+            // Save to the same location as background script
+            const today = new Date().toDateString();
+            const result = await chrome.storage.local.get(['dailyMetrics']);
+            const dailyMetrics = result.dailyMetrics || {};
+            
+            dailyMetrics[today] = {
+                itemsReviewed: this.metrics.itemsReviewed,
+                violationsFound: this.metrics.violationsFound,
+                totalTime: this.metrics.totalTime,
+                startTime: this.metrics.startTime,
+                actions: {
+                    flag: 0,
+                    escalate: 0,
+                    block: 0
+                }
+            };
+            
+            await chrome.storage.local.set({ dailyMetrics });
         } catch (error) {
             console.error('Error saving metrics:', error);
         }
@@ -209,7 +250,27 @@ class ModerationPopup {
         // Track time spent on current session
         setInterval(() => {
             this.metrics.totalTime = Date.now() - this.metrics.startTime;
+            this.updateMetricsDisplay();
         }, 1000);
+    }
+
+    startMetricsRefresh() {
+        // Refresh metrics every 5 seconds to stay in sync with background script
+        setInterval(async () => {
+            await this.loadMetrics();
+            this.updateMetricsDisplay();
+        }, 5000);
+    }
+
+    async refreshMetrics() {
+        try {
+            await this.loadMetrics();
+            this.updateMetricsDisplay();
+            this.showNotification('Metrics refreshed', 'success');
+        } catch (error) {
+            console.error('Error refreshing metrics:', error);
+            this.showNotification('Error refreshing metrics', 'error');
+        }
     }
 
     updateUI() {
