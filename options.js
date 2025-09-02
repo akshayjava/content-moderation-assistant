@@ -476,6 +476,7 @@ For more help, visit our documentation or contact support.
         return {
             enabled: false,
             grayscale: true,
+            grayscaleLevel: 100,
             blur: true,
             blurLevel: 5,
             opacity: 0.8,
@@ -513,6 +514,13 @@ For more help, visit our documentation or contact support.
             this.saveImageFilterSettings();
         });
 
+        // Grayscale level slider
+        document.getElementById('grayscaleLevel').addEventListener('input', (e) => {
+            this.imageFilterSettings.grayscaleLevel = parseInt(e.target.value);
+            document.getElementById('grayscaleValue').textContent = e.target.value + '%';
+            this.saveImageFilterSettings();
+        });
+
         // Blur level slider
         document.getElementById('blurLevel').addEventListener('input', (e) => {
             this.imageFilterSettings.blurLevel = parseInt(e.target.value);
@@ -542,6 +550,9 @@ For more help, visit our documentation or contact support.
         document.getElementById('imageBlur').checked = this.imageFilterSettings.blur;
         document.getElementById('imageBackgroundFilter').checked = this.imageFilterSettings.applyToBackgroundImages;
         document.getElementById('imageVideoThumbnails').checked = this.imageFilterSettings.applyToVideoThumbnails;
+        
+        document.getElementById('grayscaleLevel').value = this.imageFilterSettings.grayscaleLevel;
+        document.getElementById('grayscaleValue').textContent = this.imageFilterSettings.grayscaleLevel + '%';
         
         document.getElementById('blurLevel').value = this.imageFilterSettings.blurLevel;
         document.getElementById('blurValue').textContent = this.imageFilterSettings.blurLevel + 'px';

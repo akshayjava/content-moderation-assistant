@@ -20,6 +20,7 @@ class ModerationPopup {
     async init() {
         await this.loadSettings();
         await this.loadMetrics();
+        await this.loadImageFilterSettings();
         this.setupEventListeners();
         this.updateUI();
         this.startMetricsTracking();
@@ -36,10 +37,13 @@ class ModerationPopup {
         document.getElementById('startTimer').addEventListener('click', () => this.toggleTimer());
         document.getElementById('resetTimer').addEventListener('click', () => this.resetTimer());
 
+        // Quick controls
+        document.getElementById('toggleImageFilter').addEventListener('click', () => this.toggleImageFilter());
+        document.getElementById('quickGrayscale').addEventListener('input', (e) => this.updateQuickGrayscale(e));
+
         // Settings
         document.getElementById('openSettings').addEventListener('click', () => this.openSettings());
         document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
-        document.getElementById('toggleImageFilter').addEventListener('click', () => this.toggleImageFilter());
         document.getElementById('refreshMetrics').addEventListener('click', () => this.refreshMetrics());
 
         // Mindful moment
@@ -270,6 +274,48 @@ class ModerationPopup {
         } catch (error) {
             console.error('Error refreshing metrics:', error);
             this.showNotification('Error refreshing metrics', 'error');
+        }
+    }
+
+    async loadImageFilterSettings() {
+        try {
+            const result = await chrome.storage.sync.get(['imageFilterSettings']);
+            if (result.imageFilterSettings) {
+                this.imageFilterSettings = result.imageFilterSettings;
+                // Update the quick grayscale slider
+                const grayscaleSlider = document.getElementById('quickGrayscale');
+                const grayscaleValue = document.getElementById('quickGrayscaleValue');
+                if (grayscaleSlider && grayscaleValue) {
+                    grayscaleSlider.value = this.imageFilterSettings.grayscaleLevel || 100;
+                    grayscaleValue.textContent = (this.imageFilterSettings.grayscaleLevel || 100) + '%';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading image filter settings:', error);
+        }
+    }
+
+    async updateQuickGrayscale(event) {
+        try {
+            const grayscaleLevel = parseInt(event.target.value);
+            const grayscaleValue = document.getElementById('quickGrayscaleValue');
+            grayscaleValue.textContent = grayscaleLevel + '%';
+
+            // Update the image filter settings
+            this.imageFilterSettings.grayscaleLevel = grayscaleLevel;
+            await chrome.storage.sync.set({ imageFilterSettings: this.imageFilterSettings });
+
+            // Apply the change to the current page
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'updateImageFilterSettings',
+                settings: this.imageFilterSettings
+            });
+
+            this.showNotification(`Grayscale set to ${grayscaleLevel}%`, 'success');
+        } catch (error) {
+            console.error('Error updating grayscale:', error);
+            this.showNotification('Error updating grayscale', 'error');
         }
     }
 

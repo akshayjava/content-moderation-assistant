@@ -76,6 +76,22 @@
                 </div>
             </section>
 
+            <!-- Quick Image Controls -->
+            <section class="quick-controls">
+                <h3>Quick Image Controls</h3>
+                <div class="control-row">
+                    <button id="toggleImageFilter" class="control-btn">
+                        <span class="icon">🖼️</span>
+                        Toggle Filter
+                    </button>
+                    <div class="grayscale-control">
+                        <label for="quickGrayscale">Grayscale:</label>
+                        <input type="range" id="quickGrayscale" min="0" max="100" value="100">
+                        <span id="quickGrayscaleValue">100%</span>
+                    </div>
+                </div>
+            </section>
+
             <!-- Settings -->
             <section class="settings">
                 <button id="openSettings" class="settings-btn">
@@ -85,10 +101,6 @@
                 <button id="openDashboard" class="settings-btn">
                     <span class="icon">📊</span>
                     View All Actions
-                </button>
-                <button id="toggleImageFilter" class="settings-btn">
-                    <span class="icon">🖼️</span>
-                    Toggle Image Filter
                 </button>
             </section>
         </main>

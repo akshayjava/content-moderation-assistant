@@ -264,6 +264,75 @@ h2 {
     background: #e74c3c;
 }
 
+/* Quick Controls */
+.quick-controls {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quick-controls h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.control-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #2c3e50;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.grayscale-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.grayscale-control label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #2c3e50;
+    min-width: 60px;
+}
+
+.grayscale-control input[type="range"] {
+    flex: 1;
+    margin: 0 4px;
+}
+
+.grayscale-control span {
+    font-size: 11px;
+    font-weight: 600;
+    color: #3498db;
+    min-width: 35px;
+    text-align: right;
+}
+
 /* Settings */
 .settings-btn {
     width: 100%;

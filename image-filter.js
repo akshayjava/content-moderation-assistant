@@ -4,6 +4,7 @@ class ImageFilter {
         this.settings = {
             enabled: false,
             grayscale: true,
+            grayscaleLevel: 100, // 0-100
             blur: true,
             blurLevel: 5, // 0-20
             opacity: 0.8, // 0.1-1.0
@@ -178,8 +179,8 @@ class ImageFilter {
     buildFilterValue() {
         let filters = [];
         
-        if (this.settings.grayscale) {
-            filters.push('grayscale(100%)');
+        if (this.settings.grayscale && this.settings.grayscaleLevel > 0) {
+            filters.push(`grayscale(${this.settings.grayscaleLevel}%)`);
         }
         
         if (this.settings.blur && this.settings.blurLevel > 0) {
