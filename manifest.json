@@ -24,7 +24,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["gemini-analyzer.js", "content.js"],
+      "js": ["gemini-analyzer.js", "image-filter.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_end"
     }

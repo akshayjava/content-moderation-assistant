@@ -4,6 +4,7 @@ class OptionsManager {
         this.settings = {};
         this.rules = [];
         this.editingRuleId = null;
+        this.imageFilterSettings = {};
         
         this.init();
     }
@@ -53,16 +54,22 @@ class OptionsManager {
 
         // Policy manager
         document.getElementById('openPolicyManager').addEventListener('click', () => this.openPolicyManager());
+
+        // Image filter settings
+        this.setupImageFilterEventListeners();
     }
 
     async loadSettings() {
         try {
-            const result = await chrome.storage.sync.get(['moderationSettings']);
+            const result = await chrome.storage.sync.get(['moderationSettings', 'imageFilterSettings']);
             this.settings = result.moderationSettings || this.getDefaultSettings();
+            this.imageFilterSettings = result.imageFilterSettings || this.getDefaultImageFilterSettings();
             this.updateSettingsUI();
+            this.updateImageFilterUI();
         } catch (error) {
             console.error('Error loading settings:', error);
             this.settings = this.getDefaultSettings();
+            this.imageFilterSettings = this.getDefaultImageFilterSettings();
         }
     }
 
@@ -463,6 +470,172 @@ For more help, visit our documentation or contact support.
         chrome.tabs.create({
             url: chrome.runtime.getURL('policy-manager.html')
         });
+    }
+
+    getDefaultImageFilterSettings() {
+        return {
+            enabled: false,
+            grayscale: true,
+            blur: true,
+            blurLevel: 5,
+            opacity: 0.8,
+            applyToBackgroundImages: true,
+            applyToVideoThumbnails: true,
+            whitelistDomains: [],
+            blacklistDomains: []
+        };
+    }
+
+    setupImageFilterEventListeners() {
+        // Image filter toggles
+        document.getElementById('imageFilterEnabled').addEventListener('change', (e) => {
+            this.imageFilterSettings.enabled = e.target.checked;
+            this.saveImageFilterSettings();
+        });
+
+        document.getElementById('imageGrayscale').addEventListener('change', (e) => {
+            this.imageFilterSettings.grayscale = e.target.checked;
+            this.saveImageFilterSettings();
+        });
+
+        document.getElementById('imageBlur').addEventListener('change', (e) => {
+            this.imageFilterSettings.blur = e.target.checked;
+            this.saveImageFilterSettings();
+        });
+
+        document.getElementById('imageBackgroundFilter').addEventListener('change', (e) => {
+            this.imageFilterSettings.applyToBackgroundImages = e.target.checked;
+            this.saveImageFilterSettings();
+        });
+
+        document.getElementById('imageVideoThumbnails').addEventListener('change', (e) => {
+            this.imageFilterSettings.applyToVideoThumbnails = e.target.checked;
+            this.saveImageFilterSettings();
+        });
+
+        // Blur level slider
+        document.getElementById('blurLevel').addEventListener('input', (e) => {
+            this.imageFilterSettings.blurLevel = parseInt(e.target.value);
+            document.getElementById('blurValue').textContent = e.target.value + 'px';
+            this.saveImageFilterSettings();
+        });
+
+        // Opacity slider
+        document.getElementById('imageOpacity').addEventListener('input', (e) => {
+            this.imageFilterSettings.opacity = parseFloat(e.target.value);
+            document.getElementById('opacityValue').textContent = Math.round(e.target.value * 100) + '%';
+            this.saveImageFilterSettings();
+        });
+
+        // Domain management
+        document.getElementById('addWhitelistDomain').addEventListener('click', () => this.addWhitelistDomain());
+        document.getElementById('addBlacklistDomain').addEventListener('click', () => this.addBlacklistDomain());
+
+        // Filter actions
+        document.getElementById('testImageFilter').addEventListener('click', () => this.testImageFilter());
+        document.getElementById('clearImageFilters').addEventListener('click', () => this.clearImageFilters());
+    }
+
+    updateImageFilterUI() {
+        document.getElementById('imageFilterEnabled').checked = this.imageFilterSettings.enabled;
+        document.getElementById('imageGrayscale').checked = this.imageFilterSettings.grayscale;
+        document.getElementById('imageBlur').checked = this.imageFilterSettings.blur;
+        document.getElementById('imageBackgroundFilter').checked = this.imageFilterSettings.applyToBackgroundImages;
+        document.getElementById('imageVideoThumbnails').checked = this.imageFilterSettings.applyToVideoThumbnails;
+        
+        document.getElementById('blurLevel').value = this.imageFilterSettings.blurLevel;
+        document.getElementById('blurValue').textContent = this.imageFilterSettings.blurLevel + 'px';
+        
+        document.getElementById('imageOpacity').value = this.imageFilterSettings.opacity;
+        document.getElementById('opacityValue').textContent = Math.round(this.imageFilterSettings.opacity * 100) + '%';
+
+        this.renderDomainLists();
+    }
+
+    async saveImageFilterSettings() {
+        try {
+            await chrome.storage.sync.set({ imageFilterSettings: this.imageFilterSettings });
+        } catch (error) {
+            console.error('Error saving image filter settings:', error);
+        }
+    }
+
+    addWhitelistDomain() {
+        const input = document.getElementById('whitelistDomain');
+        const domain = input.value.trim();
+        if (domain && !this.imageFilterSettings.whitelistDomains.includes(domain)) {
+            this.imageFilterSettings.whitelistDomains.push(domain);
+            input.value = '';
+            this.saveImageFilterSettings();
+            this.renderDomainLists();
+        }
+    }
+
+    addBlacklistDomain() {
+        const input = document.getElementById('blacklistDomain');
+        const domain = input.value.trim();
+        if (domain && !this.imageFilterSettings.blacklistDomains.includes(domain)) {
+            this.imageFilterSettings.blacklistDomains.push(domain);
+            input.value = '';
+            this.saveImageFilterSettings();
+            this.renderDomainLists();
+        }
+    }
+
+    removeWhitelistDomain(domain) {
+        this.imageFilterSettings.whitelistDomains = this.imageFilterSettings.whitelistDomains.filter(d => d !== domain);
+        this.saveImageFilterSettings();
+        this.renderDomainLists();
+    }
+
+    removeBlacklistDomain(domain) {
+        this.imageFilterSettings.blacklistDomains = this.imageFilterSettings.blacklistDomains.filter(d => d !== domain);
+        this.saveImageFilterSettings();
+        this.renderDomainLists();
+    }
+
+    renderDomainLists() {
+        const whitelistContainer = document.getElementById('whitelistDomains');
+        const blacklistContainer = document.getElementById('blacklistDomains');
+
+        whitelistContainer.innerHTML = this.imageFilterSettings.whitelistDomains.map(domain => `
+            <div class="domain-item">
+                <span>${domain}</span>
+                <button class="remove-domain" onclick="optionsManager.removeWhitelistDomain('${domain}')">×</button>
+            </div>
+        `).join('');
+
+        blacklistContainer.innerHTML = this.imageFilterSettings.blacklistDomains.map(domain => `
+            <div class="domain-item">
+                <span>${domain}</span>
+                <button class="remove-domain" onclick="optionsManager.removeBlacklistDomain('${domain}')">×</button>
+            </div>
+        `).join('');
+    }
+
+    async testImageFilter() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'updateImageFilterSettings',
+                settings: this.imageFilterSettings
+            });
+            this.showNotification('Image filter settings applied to current page!', 'success');
+        } catch (error) {
+            console.error('Error testing image filter:', error);
+            this.showNotification('Error applying image filter settings', 'error');
+        }
+    }
+
+    async clearImageFilters() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            await chrome.tabs.sendMessage(tab.id, { action: 'clearImageFilters' });
+            this.showNotification('Image filters cleared from current page!', 'success');
+        } catch (error) {
+            console.error('Error clearing image filters:', error);
+            this.showNotification('Error clearing image filters', 'error');
+        }
     }
 
     showNotification(message, type = 'success') {

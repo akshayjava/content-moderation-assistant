@@ -116,6 +116,102 @@
                 </div>
             </section>
 
+            <!-- Image Filtering -->
+            <section class="settings-section">
+                <h2>Image Filtering</h2>
+                <p class="section-description">
+                    Apply grayscale and blur effects to images to reduce visual impact of potentially harmful content.
+                </p>
+                <div class="image-filter-settings">
+                    <div class="setting-group">
+                        <label class="setting-item">
+                            <input type="checkbox" id="imageFilterEnabled">
+                            <span class="checkmark"></span>
+                            <div class="setting-content">
+                                <div class="setting-title">Enable Image Filtering</div>
+                                <div class="setting-description">Apply filters to images on web pages</div>
+                            </div>
+                        </label>
+
+                        <label class="setting-item">
+                            <input type="checkbox" id="imageGrayscale" checked>
+                            <span class="checkmark"></span>
+                            <div class="setting-content">
+                                <div class="setting-title">Apply Grayscale</div>
+                                <div class="setting-description">Convert images to grayscale</div>
+                            </div>
+                        </label>
+
+                        <label class="setting-item">
+                            <input type="checkbox" id="imageBlur" checked>
+                            <span class="checkmark"></span>
+                            <div class="setting-content">
+                                <div class="setting-title">Apply Blur</div>
+                                <div class="setting-description">Blur images to reduce detail</div>
+                            </div>
+                        </label>
+
+                        <label class="setting-item">
+                            <input type="checkbox" id="imageBackgroundFilter" checked>
+                            <span class="checkmark"></span>
+                            <div class="setting-content">
+                                <div class="setting-title">Filter Background Images</div>
+                                <div class="setting-description">Apply filters to CSS background images</div>
+                            </div>
+                        </label>
+
+                        <label class="setting-item">
+                            <input type="checkbox" id="imageVideoThumbnails" checked>
+                            <span class="checkmark"></span>
+                            <div class="setting-content">
+                                <div class="setting-title">Filter Video Thumbnails</div>
+                                <div class="setting-description">Apply filters to video elements</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="filter-controls">
+                        <div class="control-group">
+                            <label for="blurLevel">Blur Level:</label>
+                            <input type="range" id="blurLevel" min="0" max="20" value="5">
+                            <span id="blurValue">5px</span>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="imageOpacity">Opacity:</label>
+                            <input type="range" id="imageOpacity" min="0.1" max="1.0" step="0.1" value="0.8">
+                            <span id="opacityValue">80%</span>
+                        </div>
+                    </div>
+
+                    <div class="domain-controls">
+                        <h3>Domain Controls</h3>
+                        <div class="domain-section">
+                            <h4>Whitelist Domains (Never Filter)</h4>
+                            <div class="domain-input-group">
+                                <input type="text" id="whitelistDomain" placeholder="example.com">
+                                <button id="addWhitelistDomain" class="btn btn-small btn-secondary">Add</button>
+                            </div>
+                            <div id="whitelistDomains" class="domain-list"></div>
+                        </div>
+
+                        <div class="domain-section">
+                            <h4>Blacklist Domains (Always Filter)</h4>
+                            <div class="domain-input-group">
+                                <input type="text" id="blacklistDomain" placeholder="example.com">
+                                <button id="addBlacklistDomain" class="btn btn-small btn-secondary">Add</button>
+                            </div>
+                            <div id="blacklistDomains" class="domain-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button id="testImageFilter" class="btn btn-primary">Test Filter</button>
+                        <button id="clearImageFilters" class="btn btn-secondary">Clear All Filters</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Data Management -->
             <section class="settings-section">
                 <h2>Data Management</h2>

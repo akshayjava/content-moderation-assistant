@@ -38,6 +38,7 @@ class ModerationPopup {
         // Settings
         document.getElementById('openSettings').addEventListener('click', () => this.openSettings());
         document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
+        document.getElementById('toggleImageFilter').addEventListener('click', () => this.toggleImageFilter());
 
         // Mindful moment
         document.getElementById('mindfulMoment').addEventListener('click', () => this.showMindfulMoment());
@@ -252,6 +253,32 @@ class ModerationPopup {
         chrome.tabs.create({
             url: chrome.runtime.getURL('moderation-dashboard.html')
         });
+    }
+
+    async toggleImageFilter() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const response = await chrome.tabs.sendMessage(tab.id, { action: 'toggleImageFilter' });
+            
+            if (response && response.success) {
+                const button = document.getElementById('toggleImageFilter');
+                const icon = button.querySelector('.icon');
+                if (response.enabled) {
+                    icon.textContent = '🖼️';
+                    button.title = 'Disable Image Filter';
+                } else {
+                    icon.textContent = '🖼️';
+                    button.title = 'Enable Image Filter';
+                }
+                this.showNotification(
+                    response.enabled ? 'Image filtering enabled' : 'Image filtering disabled', 
+                    'success'
+                );
+            }
+        } catch (error) {
+            console.error('Error toggling image filter:', error);
+            this.showNotification('Error toggling image filter', 'error');
+        }
     }
 
     handleKeyboardShortcuts(e) {
