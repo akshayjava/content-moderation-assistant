@@ -37,6 +37,7 @@ class ModerationPopup {
 
         // Settings
         document.getElementById('openSettings').addEventListener('click', () => this.openSettings());
+        document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
 
         // Mindful moment
         document.getElementById('mindfulMoment').addEventListener('click', () => this.showMindfulMoment());
@@ -245,6 +246,12 @@ class ModerationPopup {
 
     openSettings() {
         chrome.runtime.openOptionsPage();
+    }
+
+    openDashboard() {
+        chrome.tabs.create({
+            url: chrome.runtime.getURL('moderation-dashboard.html')
+        });
     }
 
     handleKeyboardShortcuts(e) {

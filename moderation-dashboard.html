@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderation Dashboard - Content Moderation Assistant</title>
+    <link rel="stylesheet" href="moderation-dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Moderation Dashboard</h1>
+            <p class="subtitle">View and manage all your moderation actions</p>
+            <div class="header-actions">
+                <button id="refreshData" class="btn btn-primary">Refresh Data</button>
+                <button id="exportData" class="btn btn-secondary">Export All Data</button>
+                <button id="clearData" class="btn btn-danger">Clear All Data</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Summary Stats -->
+            <section class="stats-section">
+                <h2>Summary Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalActions">0</div>
+                        <div class="stat-label">Total Actions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="flaggedCount">0</div>
+                        <div class="stat-label">Flagged</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="escalatedCount">0</div>
+                        <div class="stat-label">Escalated</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="blockedCount">0</div>
+                        <div class="stat-label">Blocked</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters -->
+            <section class="filters-section">
+                <h2>Filters</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="actionFilter">Action Type:</label>
+                        <select id="actionFilter">
+                            <option value="all">All Actions</option>
+                            <option value="flag">Flagged</option>
+                            <option value="escalate">Escalated</option>
+                            <option value="block">Blocked</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="severityFilter">Severity:</label>
+                        <select id="severityFilter">
+                            <option value="all">All Severities</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="dateFilter">Date Range:</label>
+                        <select id="dateFilter">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="searchFilter">Search:</label>
+                        <input type="text" id="searchFilter" placeholder="Search content, URLs, or rules...">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions List -->
+            <section class="actions-section">
+                <h2>Moderation Actions</h2>
+                <div class="actions-header">
+                    <div class="actions-count">
+                        Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> actions
+                    </div>
+                    <div class="actions-controls">
+                        <button id="selectAll" class="btn btn-small">Select All</button>
+                        <button id="bulkDelete" class="btn btn-small btn-danger">Delete Selected</button>
+                    </div>
+                </div>
+                <div id="actionsList" class="actions-list">
+                    <!-- Actions will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Daily Metrics -->
+            <section class="metrics-section">
+                <h2>Daily Metrics</h2>
+                <div id="dailyMetrics" class="metrics-chart">
+                    <!-- Daily metrics will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Action Detail Modal -->
+        <div id="actionModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Action Details</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="actionDetails">
+                        <!-- Action details will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="copyAction" class="btn btn-primary">Copy Details</button>
+                    <button id="exportAction" class="btn btn-secondary">Export Action</button>
+                    <button id="closeModal" class="btn btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="moderation-dashboard.js"></script>
+</body>
+</html>
