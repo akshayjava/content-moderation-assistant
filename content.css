@@ -1,0 +1,206 @@
+/* Content Moderation Assistant - Content Styles */
+
+/* Highlighting styles */
+.moderation-highlight {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.moderation-highlight:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Quick actions popup */
+.moderation-quick-actions {
+    animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.moderation-quick-actions button:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* User info popup */
+.moderation-user-popup {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Floating toolbar */
+#moderation-toolbar {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+#moderation-toolbar button:hover {
+    background: #e0e0e0 !important;
+    transform: scale(1.1);
+}
+
+/* User info elements */
+.moderation-user-info {
+    border-bottom: 1px dotted #ccc;
+}
+
+.moderation-user-info:hover {
+    background: rgba(255, 255, 0, 0.1);
+}
+
+/* Severity-based highlighting */
+.moderation-highlight[data-severity="low"] {
+    border-color: #4caf50 !important;
+    background-color: #4caf5040 !important;
+}
+
+.moderation-highlight[data-severity="medium"] {
+    border-color: #ff9800 !important;
+    background-color: #ff980040 !important;
+}
+
+.moderation-highlight[data-severity="high"] {
+    border-color: #f44336 !important;
+    background-color: #f4433640 !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #moderation-toolbar {
+        top: 10px;
+        right: 10px;
+        padding: 4px;
+    }
+    
+    #moderation-toolbar button {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+    
+    .moderation-quick-actions {
+        min-width: 100px;
+    }
+    
+    .moderation-quick-actions button {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .moderation-quick-actions,
+    .moderation-user-popup {
+        background: #2d2d2d;
+        border-color: #555;
+        color: #fff;
+    }
+    
+    .moderation-quick-actions button {
+        background: #404040;
+        color: #fff;
+        border-bottom-color: #555;
+    }
+    
+    .moderation-quick-actions button:hover {
+        background: #505050 !important;
+    }
+    
+    #moderation-toolbar {
+        background: rgba(45, 45, 45, 0.95);
+        border-color: #555;
+    }
+    
+    #moderation-toolbar button {
+        background: #404040;
+        color: #fff;
+    }
+    
+    #moderation-toolbar button:hover {
+        background: #505050 !important;
+    }
+}
+
+/* Accessibility improvements */
+.moderation-highlight:focus {
+    outline: 2px solid #2196f3;
+    outline-offset: 2px;
+}
+
+.moderation-quick-actions button:focus,
+#moderation-toolbar button:focus {
+    outline: 2px solid #2196f3;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .moderation-highlight {
+        border-width: 3px !important;
+    }
+    
+    .moderation-highlight[data-severity="high"] {
+        background-color: #ff0000 !important;
+        color: #ffffff !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .moderation-highlight,
+    .moderation-quick-actions,
+    .moderation-user-popup,
+    #moderation-toolbar {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    .moderation-highlight:hover {
+        transform: none !important;
+    }
+    
+    #moderation-toolbar button:hover {
+        transform: none !important;
+    }
+}

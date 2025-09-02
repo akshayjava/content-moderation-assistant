@@ -1,0 +1,552 @@
+// Content Moderation Assistant - Content Script
+class ContentModerator {
+    constructor() {
+        this.rules = [];
+        this.highlightedElements = [];
+        this.toxicityScore = 0;
+        this.isActive = true;
+        
+        this.init();
+    }
+
+    async init() {
+        await this.loadRules();
+        this.setupMessageListener();
+        this.analyzePage();
+        this.createFloatingToolbar();
+        this.setupKeyboardShortcuts();
+    }
+
+    async loadRules() {
+        try {
+            const result = await chrome.storage.sync.get(['moderationRules']);
+            if (result.moderationRules) {
+                this.rules = result.moderationRules;
+            } else {
+                // Default rules
+                this.rules = this.getDefaultRules();
+                await this.saveRules();
+            }
+        } catch (error) {
+            console.error('Error loading rules:', error);
+            this.rules = this.getDefaultRules();
+        }
+    }
+
+    getDefaultRules() {
+        return [
+            {
+                id: 'spam',
+                name: 'Spam Detection',
+                keywords: ['buy now', 'click here', 'free money', 'make money fast', 'viagra', 'casino'],
+                severity: 'medium',
+                color: '#ffeb3b'
+            },
+            {
+                id: 'harassment',
+                name: 'Harassment',
+                keywords: ['kill yourself', 'you should die', 'hate you', 'stupid', 'idiot', 'moron'],
+                severity: 'high',
+                color: '#f44336'
+            },
+            {
+                id: 'hate_speech',
+                name: 'Hate Speech',
+                keywords: ['nazi', 'hitler', 'white power', 'black lives don\'t matter', 'terrorist'],
+                severity: 'high',
+                color: '#d32f2f'
+            },
+            {
+                id: 'violence',
+                name: 'Violence',
+                keywords: ['bomb', 'shoot', 'kill', 'murder', 'violence', 'attack'],
+                severity: 'high',
+                color: '#c62828'
+            },
+            {
+                id: 'adult_content',
+                name: 'Adult Content',
+                keywords: ['porn', 'sex', 'nude', 'naked', 'xxx', 'adult'],
+                severity: 'medium',
+                color: '#ff9800'
+            }
+        ];
+    }
+
+    async saveRules() {
+        try {
+            await chrome.storage.sync.set({ moderationRules: this.rules });
+        } catch (error) {
+            console.error('Error saving rules:', error);
+        }
+    }
+
+    setupMessageListener() {
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            switch (request.action) {
+                case 'flag':
+                    this.flagContent();
+                    sendResponse({ success: true });
+                    break;
+                case 'escalate':
+                    this.escalateContent();
+                    sendResponse({ success: true });
+                    break;
+                case 'block':
+                    this.blockUser();
+                    sendResponse({ success: true });
+                    break;
+                case 'getToxicityScore':
+                    sendResponse({ score: this.toxicityScore });
+                    break;
+                case 'toggleHighlighting':
+                    this.toggleHighlighting();
+                    sendResponse({ success: true, active: this.isActive });
+                    break;
+                default:
+                    sendResponse({ success: false, error: 'Unknown action' });
+            }
+        });
+    }
+
+    analyzePage() {
+        if (!this.isActive) return;
+
+        this.clearHighlights();
+        this.highlightContent();
+        this.calculateToxicityScore();
+        this.detectUserInfo();
+    }
+
+    highlightContent() {
+        const textNodes = this.getTextNodes();
+        
+        textNodes.forEach(node => {
+            const text = node.textContent.toLowerCase();
+            let hasViolation = false;
+            let highestSeverity = 'low';
+            let matchedRule = null;
+
+            // Check against all rules
+            this.rules.forEach(rule => {
+                rule.keywords.forEach(keyword => {
+                    if (text.includes(keyword.toLowerCase())) {
+                        hasViolation = true;
+                        if (this.getSeverityLevel(rule.severity) > this.getSeverityLevel(highestSeverity)) {
+                            highestSeverity = rule.severity;
+                            matchedRule = rule;
+                        }
+                    }
+                });
+            });
+
+            if (hasViolation && matchedRule) {
+                this.highlightNode(node, matchedRule);
+            }
+        });
+    }
+
+    getTextNodes() {
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: (node) => {
+                    // Skip script and style elements
+                    const parent = node.parentElement;
+                    if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    // Only process nodes with meaningful text
+                    return node.textContent.trim().length > 3 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+                }
+            }
+        );
+
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+        return textNodes;
+    }
+
+    highlightNode(textNode, rule) {
+        const parent = textNode.parentElement;
+        if (!parent || parent.classList.contains('moderation-highlight')) return;
+
+        const wrapper = document.createElement('span');
+        wrapper.className = 'moderation-highlight';
+        wrapper.style.cssText = `
+            background-color: ${rule.color}40;
+            border: 2px solid ${rule.color};
+            border-radius: 3px;
+            padding: 1px 2px;
+            margin: 0 1px;
+            position: relative;
+            cursor: pointer;
+        `;
+
+        wrapper.setAttribute('data-rule-id', rule.id);
+        wrapper.setAttribute('data-rule-name', rule.name);
+        wrapper.setAttribute('data-severity', rule.severity);
+
+        // Add tooltip
+        wrapper.title = `Violation: ${rule.name} (${rule.severity})`;
+
+        // Wrap the text node
+        textNode.parentNode.insertBefore(wrapper, textNode);
+        wrapper.appendChild(textNode);
+
+        // Add click handler for quick actions
+        wrapper.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showQuickActions(e, rule);
+        });
+
+        this.highlightedElements.push(wrapper);
+    }
+
+    showQuickActions(event, rule) {
+        // Remove existing quick actions
+        const existing = document.querySelector('.moderation-quick-actions');
+        if (existing) {
+            existing.remove();
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'moderation-quick-actions';
+        actions.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            min-width: 120px;
+        `;
+
+        const actionButtons = [
+            { text: 'Flag', action: 'flag', color: '#ffeb3b' },
+            { text: 'Escalate', action: 'escalate', color: '#ff9800' },
+            { text: 'Block User', action: 'block', color: '#f44336' }
+        ];
+
+        actionButtons.forEach(btn => {
+            const button = document.createElement('button');
+            button.textContent = btn.text;
+            button.style.cssText = `
+                padding: 8px 12px;
+                border: none;
+                background: ${btn.color};
+                color: white;
+                cursor: pointer;
+                font-size: 12px;
+                border-bottom: 1px solid rgba(0,0,0,0.1);
+            `;
+            button.addEventListener('click', () => {
+                this.performQuickAction(btn.action, rule);
+                actions.remove();
+            });
+            actions.appendChild(button);
+        });
+
+        event.target.appendChild(actions);
+
+        // Position the actions
+        const rect = event.target.getBoundingClientRect();
+        actions.style.left = '0px';
+        actions.style.top = '100%';
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', () => actions.remove(), { once: true });
+        }, 100);
+    }
+
+    performQuickAction(action, rule) {
+        const data = {
+            action: action,
+            rule: rule,
+            content: this.getSelectedText(),
+            url: window.location.href,
+            timestamp: Date.now()
+        };
+
+        // Send to background script for processing
+        chrome.runtime.sendMessage({
+            type: 'moderationAction',
+            data: data
+        });
+
+        // Visual feedback
+        this.showActionFeedback(action);
+    }
+
+    getSelectedText() {
+        const selection = window.getSelection();
+        return selection.toString() || document.querySelector('.moderation-highlight:hover')?.textContent || '';
+    }
+
+    showActionFeedback(action) {
+        const feedback = document.createElement('div');
+        feedback.textContent = `${action.charAt(0).toUpperCase() + action.slice(1)} action performed`;
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            z-index: 10001;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+
+        document.body.appendChild(feedback);
+        setTimeout(() => feedback.remove(), 3000);
+    }
+
+    calculateToxicityScore() {
+        let totalScore = 0;
+        let totalWords = 0;
+
+        const textNodes = this.getTextNodes();
+        
+        textNodes.forEach(node => {
+            const words = node.textContent.toLowerCase().split(/\s+/);
+            totalWords += words.length;
+
+            this.rules.forEach(rule => {
+                const severityWeight = this.getSeverityLevel(rule.severity);
+                rule.keywords.forEach(keyword => {
+                    words.forEach(word => {
+                        if (word.includes(keyword.toLowerCase())) {
+                            totalScore += severityWeight;
+                        }
+                    });
+                });
+            });
+        });
+
+        this.toxicityScore = totalWords > 0 ? Math.min(totalScore / totalWords, 1) : 0;
+    }
+
+    getSeverityLevel(severity) {
+        const levels = { low: 0.1, medium: 0.3, high: 0.7 };
+        return levels[severity] || 0.1;
+    }
+
+    detectUserInfo() {
+        // Look for common user identification patterns
+        const userSelectors = [
+            '[data-user-id]',
+            '[data-username]',
+            '.username',
+            '.user-name',
+            '.author',
+            '.poster'
+        ];
+
+        userSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(element => {
+                this.addUserInfoOverlay(element);
+            });
+        });
+    }
+
+    addUserInfoOverlay(element) {
+        if (element.classList.contains('moderation-user-info')) return;
+
+        element.classList.add('moderation-user-info');
+        element.style.position = 'relative';
+        element.style.cursor = 'pointer';
+
+        element.addEventListener('mouseenter', (e) => {
+            this.showUserInfo(e.target);
+        });
+
+        element.addEventListener('mouseleave', () => {
+            this.hideUserInfo();
+        });
+    }
+
+    showUserInfo(element) {
+        const existing = document.querySelector('.moderation-user-popup');
+        if (existing) existing.remove();
+
+        const popup = document.createElement('div');
+        popup.className = 'moderation-user-popup';
+        popup.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 200px;
+            font-size: 12px;
+        `;
+
+        // Mock user data - in real implementation, this would come from an API
+        const userData = {
+            username: element.textContent || 'Unknown User',
+            violations: Math.floor(Math.random() * 5),
+            warnings: Math.floor(Math.random() * 3),
+            lastActivity: '2 hours ago'
+        };
+
+        popup.innerHTML = `
+            <div><strong>${userData.username}</strong></div>
+            <div>Violations: ${userData.violations}</div>
+            <div>Warnings: ${userData.warnings}</div>
+            <div>Last Active: ${userData.lastActivity}</div>
+        `;
+
+        element.appendChild(popup);
+    }
+
+    hideUserInfo() {
+        const popup = document.querySelector('.moderation-user-popup');
+        if (popup) popup.remove();
+    }
+
+    createFloatingToolbar() {
+        const toolbar = document.createElement('div');
+        toolbar.id = 'moderation-toolbar';
+        toolbar.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 8px;
+            z-index: 10000;
+            display: flex;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+
+        const buttons = [
+            { icon: '🚩', action: 'flag', title: 'Flag Content' },
+            { icon: '⬆️', action: 'escalate', title: 'Escalate' },
+            { icon: '🚫', action: 'block', title: 'Block User' },
+            { icon: '👁️', action: 'toggle', title: 'Toggle Highlighting' }
+        ];
+
+        buttons.forEach(btn => {
+            const button = document.createElement('button');
+            button.innerHTML = btn.icon;
+            button.title = btn.title;
+            button.style.cssText = `
+                width: 32px;
+                height: 32px;
+                border: none;
+                background: #f5f5f5;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            button.addEventListener('click', () => {
+                if (btn.action === 'toggle') {
+                    this.toggleHighlighting();
+                } else {
+                    this.performQuickAction(btn.action, null);
+                }
+            });
+
+            toolbar.appendChild(button);
+        });
+
+        document.body.appendChild(toolbar);
+    }
+
+    toggleHighlighting() {
+        this.isActive = !this.isActive;
+        
+        if (this.isActive) {
+            this.analyzePage();
+        } else {
+            this.clearHighlights();
+        }
+
+        // Update toolbar button
+        const toggleBtn = document.querySelector('#moderation-toolbar button[title="Toggle Highlighting"]');
+        if (toggleBtn) {
+            toggleBtn.style.background = this.isActive ? '#f5f5f5' : '#ffeb3b';
+        }
+    }
+
+    clearHighlights() {
+        this.highlightedElements.forEach(element => {
+            if (element.parentNode) {
+                element.parentNode.insertBefore(element.firstChild, element);
+                element.parentNode.removeChild(element);
+            }
+        });
+        this.highlightedElements = [];
+    }
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey) {
+                switch (e.key) {
+                    case 'F':
+                        e.preventDefault();
+                        this.performQuickAction('flag', null);
+                        break;
+                    case 'E':
+                        e.preventDefault();
+                        this.performQuickAction('escalate', null);
+                        break;
+                    case 'B':
+                        e.preventDefault();
+                        this.performQuickAction('block', null);
+                        break;
+                }
+            }
+        });
+    }
+
+    flagContent() {
+        const selectedText = this.getSelectedText();
+        if (selectedText) {
+            this.performQuickAction('flag', { name: 'Manual Flag', severity: 'medium' });
+        }
+    }
+
+    escalateContent() {
+        const selectedText = this.getSelectedText();
+        if (selectedText) {
+            this.performQuickAction('escalate', { name: 'Manual Escalation', severity: 'high' });
+        }
+    }
+
+    blockUser() {
+        const userElement = document.querySelector('.moderation-user-info:hover');
+        if (userElement) {
+            this.performQuickAction('block', { name: 'User Block', severity: 'high' });
+        }
+    }
+}
+
+// Initialize content moderator when page loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => new ContentModerator());
+} else {
+    new ContentModerator();
+}

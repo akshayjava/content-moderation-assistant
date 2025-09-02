@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Moderation Assistant</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Moderation Assistant</h1>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot active"></span>
+                <span class="status-text">Active</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <button id="flagBtn" class="action-btn flag">
+                        <span class="icon">🚩</span>
+                        Flag Content
+                    </button>
+                    <button id="escalateBtn" class="action-btn escalate">
+                        <span class="icon">⬆️</span>
+                        Escalate
+                    </button>
+                    <button id="blockBtn" class="action-btn block">
+                        <span class="icon">🚫</span>
+                        Block User
+                    </button>
+                </div>
+            </section>
+
+            <!-- Metrics Dashboard -->
+            <section class="metrics">
+                <h2>Today's Metrics</h2>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <span class="metric-value" id="itemsReviewed">0</span>
+                        <span class="metric-label">Items Reviewed</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="violationsFound">0</span>
+                        <span class="metric-label">Violations Found</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="avgTime">0m</span>
+                        <span class="metric-label">Avg Time/Item</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Well-being Section -->
+            <section class="wellbeing">
+                <h2>Well-being</h2>
+                <div class="wellbeing-content">
+                    <div class="break-timer">
+                        <div class="timer-display" id="timerDisplay">25:00</div>
+                        <div class="timer-controls">
+                            <button id="startTimer" class="timer-btn">Start Break Timer</button>
+                            <button id="resetTimer" class="timer-btn secondary">Reset</button>
+                        </div>
+                    </div>
+                    <div class="toxicity-score">
+                        <span class="score-label">Current Page Toxicity:</span>
+                        <span class="score-value" id="toxicityScore">Low</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings -->
+            <section class="settings">
+                <button id="openSettings" class="settings-btn">
+                    <span class="icon">⚙️</span>
+                    Settings
+                </button>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="version">v1.0.0</div>
+            <div class="mindful-moment" id="mindfulMoment">
+                <span class="icon">🧘</span>
+                Take a mindful moment
+            </div>
+        </footer>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

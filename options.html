@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Moderation Assistant - Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Content Moderation Assistant</h1>
+            <p class="subtitle">Configure your moderation settings and rules</p>
+        </header>
+
+        <main class="main-content">
+            <!-- General Settings -->
+            <section class="settings-section">
+                <h2>General Settings</h2>
+                <div class="setting-group">
+                    <label class="setting-item">
+                        <input type="checkbox" id="highlightingEnabled" checked>
+                        <span class="checkmark"></span>
+                        <div class="setting-content">
+                            <div class="setting-title">Enable Content Highlighting</div>
+                            <div class="setting-description">Automatically highlight potential violations on web pages</div>
+                        </div>
+                    </label>
+
+                    <label class="setting-item">
+                        <input type="checkbox" id="notificationsEnabled" checked>
+                        <span class="checkmark"></span>
+                        <div class="setting-content">
+                            <div class="setting-title">Enable Notifications</div>
+                            <div class="setting-description">Show notifications for break reminders and actions</div>
+                        </div>
+                    </label>
+
+                    <label class="setting-item">
+                        <input type="checkbox" id="autoReport">
+                        <span class="checkmark"></span>
+                        <div class="setting-content">
+                            <div class="setting-title">Auto-generate Reports</div>
+                            <div class="setting-description">Automatically generate reports for flagged content</div>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Well-being Settings -->
+            <section class="settings-section">
+                <h2>Well-being Settings</h2>
+                <div class="setting-group">
+                    <div class="setting-item">
+                        <div class="setting-content">
+                            <div class="setting-title">Break Interval (minutes)</div>
+                            <div class="setting-description">How often to remind you to take a break</div>
+                        </div>
+                        <input type="number" id="breakInterval" min="5" max="60" value="25" class="number-input">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-content">
+                            <div class="setting-title">Break Duration (minutes)</div>
+                            <div class="setting-description">How long each break should be</div>
+                        </div>
+                        <input type="number" id="breakDuration" min="1" max="30" value="5" class="number-input">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Custom Rules -->
+            <section class="settings-section">
+                <h2>Custom Rules</h2>
+                <div class="rules-container">
+                    <div class="rules-header">
+                        <button id="addRule" class="btn btn-primary">Add New Rule</button>
+                        <button id="importRules" class="btn btn-secondary">Import Rules</button>
+                        <button id="exportRules" class="btn btn-secondary">Export Rules</button>
+                    </div>
+                    
+                    <div id="rulesList" class="rules-list">
+                        <!-- Rules will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Keyboard Shortcuts -->
+            <section class="settings-section">
+                <h2>Keyboard Shortcuts</h2>
+                <div class="shortcuts-list">
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Ctrl+Shift+F</span>
+                        <span class="shortcut-description">Flag selected content</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Ctrl+Shift+E</span>
+                        <span class="shortcut-description">Escalate selected content</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Ctrl+Shift+B</span>
+                        <span class="shortcut-description">Block selected user</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Management -->
+            <section class="settings-section">
+                <h2>Data Management</h2>
+                <div class="data-actions">
+                    <button id="clearData" class="btn btn-danger">Clear All Data</button>
+                    <button id="exportData" class="btn btn-secondary">Export Data</button>
+                    <button id="importData" class="btn btn-secondary">Import Data</button>
+                </div>
+                <div class="data-info">
+                    <p>Clear all stored moderation data, metrics, and custom rules.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-actions">
+                <button id="saveSettings" class="btn btn-primary">Save Settings</button>
+                <button id="resetSettings" class="btn btn-secondary">Reset to Defaults</button>
+            </div>
+            <div class="version-info">
+                <span>Version 1.0.0</span>
+                <span>•</span>
+                <a href="#" id="helpLink">Help & Support</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Rule Editor Modal -->
+    <div id="ruleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Rule</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="ruleName">Rule Name</label>
+                    <input type="text" id="ruleName" placeholder="e.g., Spam Detection">
+                </div>
+                <div class="form-group">
+                    <label for="ruleKeywords">Keywords (one per line)</label>
+                    <textarea id="ruleKeywords" rows="5" placeholder="buy now&#10;click here&#10;free money"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ruleSeverity">Severity</label>
+                    <select id="ruleSeverity">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ruleColor">Highlight Color</label>
+                    <input type="color" id="ruleColor" value="#ffeb3b">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveRule" class="btn btn-primary">Save Rule</button>
+                <button id="cancelRule" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
