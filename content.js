@@ -111,34 +111,64 @@ class ContentModerator {
 
     setupMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            switch (request.action) {
-                case 'flag':
-                    this.flagContent();
-                    sendResponse({ success: true });
-                    break;
-                case 'escalate':
-                    this.escalateContent();
-                    sendResponse({ success: true });
-                    break;
-                case 'block':
-                    this.blockUser();
-                    sendResponse({ success: true });
-                    break;
-                case 'getToxicityScore':
-                    sendResponse({ score: this.toxicityScore });
-                    break;
-                case 'toggleHighlighting':
-                    this.toggleHighlighting();
-                    sendResponse({ success: true, active: this.isActive });
-                    break;
-                case 'analyzeWithAI':
-                    this.performAIAnalysis().then(result => sendResponse(result));
-                    return true; // Keep message channel open for async response
-                case 'getAIAnalysis':
-                    sendResponse({ analysis: this.aiAnalysisResults });
-                    break;
-                default:
-                    sendResponse({ success: false, error: 'Unknown action' });
+            try {
+                switch (request.action) {
+                    case 'flag':
+                        this.flagContent();
+                        sendResponse({ success: true });
+                        break;
+                    case 'escalate':
+                        this.escalateContent();
+                        sendResponse({ success: true });
+                        break;
+                    case 'block':
+                        this.blockUser();
+                        sendResponse({ success: true });
+                        break;
+                    case 'getToxicityScore':
+                        sendResponse({ score: this.toxicityScore });
+                        break;
+                    case 'toggleHighlighting':
+                        this.toggleHighlighting();
+                        sendResponse({ success: true, active: this.isActive });
+                        break;
+                    case 'analyzeWithAI':
+                        this.performAIAnalysis().then(result => sendResponse(result));
+                        return true; // Keep message channel open for async response
+                    case 'getAIAnalysis':
+                        sendResponse({ analysis: this.aiAnalysisResults });
+                        break;
+                    case 'toggleImageFilter':
+                        // Forward to image filter if available
+                        if (window.imageFilter) {
+                            window.imageFilter.toggleFiltering();
+                            sendResponse({ success: true, enabled: window.imageFilter.settings.enabled });
+                        } else {
+                            sendResponse({ success: false, error: 'Image filter not available' });
+                        }
+                        break;
+                    case 'updateImageFilterSettings':
+                        if (window.imageFilter) {
+                            window.imageFilter.updateSettings(request.settings);
+                            sendResponse({ success: true });
+                        } else {
+                            sendResponse({ success: false, error: 'Image filter not available' });
+                        }
+                        break;
+                    case 'clearImageFilters':
+                        if (window.imageFilter) {
+                            window.imageFilter.clearAllFilters();
+                            sendResponse({ success: true });
+                        } else {
+                            sendResponse({ success: false, error: 'Image filter not available' });
+                        }
+                        break;
+                    default:
+                        sendResponse({ success: false, error: 'Unknown action' });
+                }
+            } catch (error) {
+                console.error('Error in content script message handler:', error);
+                sendResponse({ success: false, error: error.message });
             }
         });
     }
@@ -331,28 +361,53 @@ class ContentModerator {
     }
 
     getSelectedText() {
-        const selection = window.getSelection();
-        return selection.toString() || document.querySelector('.moderation-highlight:hover')?.textContent || '';
+        try {
+            const selection = window.getSelection();
+            if (selection && selection.toString().trim()) {
+                return selection.toString().trim();
+            }
+            
+            // Check for highlighted content
+            const highlightedElement = document.querySelector('.moderation-highlight:hover');
+            if (highlightedElement && highlightedElement.textContent.trim()) {
+                return highlightedElement.textContent.trim();
+            }
+            
+            // Check for any text selection
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            if (range && range.toString().trim()) {
+                return range.toString().trim();
+            }
+            
+            return '';
+        } catch (error) {
+            console.error('Error getting selected text:', error);
+            return '';
+        }
     }
 
-    showActionFeedback(action) {
+    showActionFeedback(action, customMessage = null) {
         const feedback = document.createElement('div');
-        feedback.textContent = `${action.charAt(0).toUpperCase() + action.slice(1)} action performed`;
+        const isError = customMessage && customMessage.includes('Please');
+        
+        feedback.textContent = customMessage || `${action.charAt(0).toUpperCase() + action.slice(1)} action performed`;
         feedback.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #27ae60;
+            background: ${isError ? '#e74c3c' : '#27ae60'};
             color: white;
             padding: 12px 16px;
             border-radius: 4px;
             z-index: 10001;
             font-size: 14px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            max-width: 300px;
+            word-wrap: break-word;
         `;
 
         document.body.appendChild(feedback);
-        setTimeout(() => feedback.remove(), 3000);
+        setTimeout(() => feedback.remove(), isError ? 5000 : 3000);
     }
 
     calculateToxicityScore() {
@@ -569,6 +624,9 @@ class ContentModerator {
         const selectedText = this.getSelectedText();
         if (selectedText) {
             this.performQuickAction('flag', { name: 'Manual Flag', severity: 'medium' });
+        } else {
+            // Show error message if no content is selected
+            this.showActionFeedback('flag', 'Please select content to flag');
         }
     }
 
@@ -576,6 +634,8 @@ class ContentModerator {
         const selectedText = this.getSelectedText();
         if (selectedText) {
             this.performQuickAction('escalate', { name: 'Manual Escalation', severity: 'high' });
+        } else {
+            this.showActionFeedback('escalate', 'Please select content to escalate');
         }
     }
 
@@ -583,6 +643,8 @@ class ContentModerator {
         const userElement = document.querySelector('.moderation-user-info:hover');
         if (userElement) {
             this.performQuickAction('block', { name: 'User Block', severity: 'high' });
+        } else {
+            this.showActionFeedback('block', 'Please hover over a user element to block');
         }
     }
 
