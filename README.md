@@ -1,8 +1,15 @@
 # Content Moderation Assistant
 
-A comprehensive Chrome extension designed to assist content moderators in their daily tasks by providing automated content analysis, workflow automation, and well-being features.
+A comprehensive Chrome extension designed to assist content moderators in their daily tasks by providing AI-powered content analysis, workflow automation, and well-being features.
 
 ## Features
+
+### AI-Powered Content Analysis
+- **Gemini AI Integration**: Advanced content analysis using Google's Gemini API
+- **URL Context Analysis**: Comprehensive page analysis with context awareness
+- **Custom Policy Engine**: Create and manage custom moderation policies
+- **Confidence Scoring**: AI-generated confidence scores for violation detection
+- **Detailed Explanations**: AI provides explanations for why content violates policies
 
 ### Core Functionality
 - **Content Identification**: Automatically analyze on-page content to identify potential policy violations
@@ -19,6 +26,8 @@ A comprehensive Chrome extension designed to assist content moderators in their 
 
 ### Customization
 - **Custom Rule Sets**: Create and manage your own moderation rules
+- **Custom AI Policies**: Define specific policies for AI analysis
+- **Analysis Modes**: Choose between AI-only, rules-only, or hybrid analysis
 - **Keyboard Shortcuts**: Configurable shortcuts for quick actions
 - **Settings Management**: Comprehensive options for personalization
 - **Data Export/Import**: Backup and restore your settings and rules
@@ -52,7 +61,15 @@ A comprehensive Chrome extension designed to assist content moderators in their 
 1. Click the extension icon and select "Settings"
 2. Configure your custom rules and preferences
 3. Set up break reminders and well-being features
-4. Import/export your settings for backup
+4. Configure AI analysis (requires Gemini API key)
+5. Import/export your settings for backup
+
+### AI Setup
+1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Go to Settings → "Configure AI Policies"
+3. Enter your API key and test the connection
+4. Create custom policies or use the default Trust & Safety policies
+5. Choose your analysis mode (AI-only, rules-only, or hybrid)
 
 ### Custom Rules
 1. Go to Settings > Custom Rules
@@ -64,22 +81,32 @@ A comprehensive Chrome extension designed to assist content moderators in their 
 
 ```
 Content-Moderation-Assistant/
-├── manifest.json          # Extension manifest
-├── popup.html             # Main popup interface
-├── popup.css              # Popup styles
-├── popup.js               # Popup functionality
-├── content.js             # Content script for page analysis
-├── content.css            # Content script styles
-├── background.js          # Background service worker
-├── options.html           # Settings page
-├── options.css            # Settings page styles
-├── options.js             # Settings functionality
-├── icons/                 # Extension icons
+├── manifest.json              # Extension manifest
+├── popup.html                 # Main popup interface
+├── popup.css                  # Popup styles
+├── popup.js                   # Popup functionality
+├── content.js                 # Content script for page analysis
+├── content.css                # Content script styles
+├── background.js              # Background service worker
+├── options.html               # Settings page
+├── options.css                # Settings page styles
+├── options.js                 # Settings functionality
+├── gemini-analyzer.js         # AI content analysis engine
+├── policy-manager.html        # AI policy configuration
+├── policy-manager.css         # Policy manager styles
+├── policy-manager.js          # Policy management functionality
+├── moderation-dashboard.html  # Moderation actions dashboard
+├── moderation-dashboard.css   # Dashboard styles
+├── moderation-dashboard.js    # Dashboard functionality
+├── escalation-handler.js      # Enhanced escalation system
+├── escalation-config.md       # Escalation configuration guide
+├── icons/                     # Extension icons
 │   ├── icon16.png
 │   ├── icon32.png
 │   ├── icon48.png
 │   └── icon128.png
-└── README.md              # This file
+├── Agent.md                   # Project plan and roadmap
+└── README.md                  # This file
 ```
 
 ## Development
@@ -88,6 +115,7 @@ Content-Moderation-Assistant/
 - Chrome browser (latest version)
 - Basic knowledge of HTML, CSS, and JavaScript
 - Chrome extension development experience (helpful but not required)
+- Gemini API key for AI features (optional but recommended)
 
 ### Building from Source
 1. Clone the repository
@@ -111,6 +139,11 @@ Content-Moderation-Assistant/
 - `chrome.notifications`: For break reminders and alerts
 - `chrome.scripting`: For content script injection
 - `chrome.commands`: For keyboard shortcuts
+- `chrome.alarms`: For break reminder scheduling
+
+### External APIs
+- **Google Gemini API**: For AI-powered content analysis
+- **Fetch API**: For HTTP requests to external services
 
 ### Message Passing
 The extension uses Chrome's message passing API for communication between components:
@@ -157,6 +190,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Thanks to the Chrome extension development community
 
 ## Version History
+
+### v2.0.0 (Current)
+- **AI-Powered Analysis**: Gemini API integration for advanced content analysis
+- **Custom Policy Engine**: Create and manage custom AI policies
+- **URL Context Analysis**: Comprehensive page analysis with context awareness
+- **Enhanced Dashboard**: Complete moderation actions dashboard
+- **Multiple Escalation Destinations**: Local, API, Slack, email, and more
+- **Analysis Modes**: AI-only, rules-only, or hybrid analysis
+- **Confidence Scoring**: AI-generated confidence scores for violations
+- **Detailed Explanations**: AI explanations for policy violations
 
 ### v1.0.0
 - Initial release
