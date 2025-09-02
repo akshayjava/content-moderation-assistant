@@ -258,7 +258,21 @@ class ModerationPopup {
     async toggleImageFilter() {
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            const response = await chrome.tabs.sendMessage(tab.id, { action: 'toggleImageFilter' });
+            
+            if (!tab) {
+                this.showNotification('No active tab found', 'error');
+                return;
+            }
+
+            // Check if content script is loaded
+            let response;
+            try {
+                response = await chrome.tabs.sendMessage(tab.id, { action: 'toggleImageFilter' });
+            } catch (messageError) {
+                console.error('Message error:', messageError);
+                this.showNotification('Content script not loaded. Please refresh the page and try again.', 'error');
+                return;
+            }
             
             if (response && response.success) {
                 const button = document.getElementById('toggleImageFilter');
@@ -274,10 +288,14 @@ class ModerationPopup {
                     response.enabled ? 'Image filtering enabled' : 'Image filtering disabled', 
                     'success'
                 );
+            } else if (response && response.error) {
+                this.showNotification(`Error: ${response.error}`, 'error');
+            } else {
+                this.showNotification('Unknown error occurred', 'error');
             }
         } catch (error) {
             console.error('Error toggling image filter:', error);
-            this.showNotification('Error toggling image filter', 'error');
+            this.showNotification('Error toggling image filter. Please try refreshing the page.', 'error');
         }
     }
 

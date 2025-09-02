@@ -49,25 +49,31 @@ class ImageFilter {
 
     setupMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            switch (request.action) {
-                case 'toggleImageFilter':
-                    this.toggleFiltering();
-                    sendResponse({ success: true, enabled: this.settings.enabled });
-                    break;
-                case 'updateImageFilterSettings':
-                    this.updateSettings(request.settings);
-                    sendResponse({ success: true });
-                    break;
-                case 'getImageFilterSettings':
-                    sendResponse({ settings: this.settings });
-                    break;
-                case 'clearImageFilters':
-                    this.clearAllFilters();
-                    sendResponse({ success: true });
-                    break;
-                default:
-                    sendResponse({ success: false, error: 'Unknown action' });
+            try {
+                switch (request.action) {
+                    case 'toggleImageFilter':
+                        this.toggleFiltering();
+                        sendResponse({ success: true, enabled: this.settings.enabled });
+                        break;
+                    case 'updateImageFilterSettings':
+                        this.updateSettings(request.settings);
+                        sendResponse({ success: true });
+                        break;
+                    case 'getImageFilterSettings':
+                        sendResponse({ settings: this.settings });
+                        break;
+                    case 'clearImageFilters':
+                        this.clearAllFilters();
+                        sendResponse({ success: true });
+                        break;
+                    default:
+                        sendResponse({ success: false, error: 'Unknown action' });
+                }
+            } catch (error) {
+                console.error('Error in image filter message handler:', error);
+                sendResponse({ success: false, error: error.message });
             }
+            return true; // Keep message channel open for async response
         });
     }
 
@@ -398,10 +404,28 @@ class ImageFilter {
 
 // Initialize image filter when DOM is loaded
 let imageFilter;
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        imageFilter = new ImageFilter();
-    });
-} else {
-    imageFilter = new ImageFilter();
+
+function initializeImageFilter() {
+    try {
+        if (!imageFilter) {
+            imageFilter = new ImageFilter();
+            console.log('Image filter initialized successfully');
+        }
+    } catch (error) {
+        console.error('Error initializing image filter:', error);
+    }
 }
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeImageFilter);
+} else {
+    // DOM already loaded, initialize immediately
+    initializeImageFilter();
+}
+
+// Also initialize on window load as a fallback
+window.addEventListener('load', () => {
+    if (!imageFilter) {
+        initializeImageFilter();
+    }
+});
