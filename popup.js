@@ -14,6 +14,19 @@ class ModerationPopup {
             interval: null
         };
         
+        this.imageFilterSettings = {
+            enabled: false,
+            grayscale: true,
+            grayscaleLevel: 100,
+            blur: true,
+            blurLevel: 5,
+            opacity: 0.8,
+            applyToBackgroundImages: true,
+            applyToVideoThumbnails: true,
+            whitelistDomains: [],
+            blacklistDomains: []
+        };
+        
         this.init();
     }
 
@@ -281,14 +294,15 @@ class ModerationPopup {
         try {
             const result = await chrome.storage.sync.get(['imageFilterSettings']);
             if (result.imageFilterSettings) {
-                this.imageFilterSettings = result.imageFilterSettings;
-                // Update the quick grayscale slider
-                const grayscaleSlider = document.getElementById('quickGrayscale');
-                const grayscaleValue = document.getElementById('quickGrayscaleValue');
-                if (grayscaleSlider && grayscaleValue) {
-                    grayscaleSlider.value = this.imageFilterSettings.grayscaleLevel || 100;
-                    grayscaleValue.textContent = (this.imageFilterSettings.grayscaleLevel || 100) + '%';
-                }
+                this.imageFilterSettings = { ...this.imageFilterSettings, ...result.imageFilterSettings };
+            }
+            
+            // Update the quick grayscale slider
+            const grayscaleSlider = document.getElementById('quickGrayscale');
+            const grayscaleValue = document.getElementById('quickGrayscaleValue');
+            if (grayscaleSlider && grayscaleValue) {
+                grayscaleSlider.value = this.imageFilterSettings.grayscaleLevel || 100;
+                grayscaleValue.textContent = (this.imageFilterSettings.grayscaleLevel || 100) + '%';
             }
         } catch (error) {
             console.error('Error loading image filter settings:', error);
@@ -299,6 +313,11 @@ class ModerationPopup {
         try {
             const grayscaleLevel = parseInt(event.target.value);
             const grayscaleValue = document.getElementById('quickGrayscaleValue');
+            
+            if (!grayscaleValue) {
+                throw new Error('Grayscale value element not found');
+            }
+            
             grayscaleValue.textContent = grayscaleLevel + '%';
 
             // Update the image filter settings
@@ -307,15 +326,30 @@ class ModerationPopup {
 
             // Apply the change to the current page
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            await chrome.tabs.sendMessage(tab.id, {
+            
+            if (!tab) {
+                throw new Error('No active tab found');
+            }
+
+            const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'updateImageFilterSettings',
                 settings: this.imageFilterSettings
             });
 
-            this.showNotification(`Grayscale set to ${grayscaleLevel}%`, 'success');
+            if (response && response.success) {
+                this.showNotification(`Grayscale set to ${grayscaleLevel}%`, 'success');
+            } else if (response && response.error) {
+                if (response.error === 'Image filter not available') {
+                    throw new Error('Image filter not loaded. Please refresh the page and try again.');
+                } else {
+                    throw new Error(response.error);
+                }
+            } else {
+                throw new Error('No response from content script. Please refresh the page and try again.');
+            }
         } catch (error) {
             console.error('Error updating grayscale:', error);
-            this.showNotification('Error updating grayscale', 'error');
+            this.showNotification(`Error updating grayscale: ${error.message}`, 'error');
         }
     }
 
