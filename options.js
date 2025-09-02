@@ -497,21 +497,25 @@ For more help, visit our documentation or contact support.
         document.getElementById('imageGrayscale').addEventListener('change', (e) => {
             this.imageFilterSettings.grayscale = e.target.checked;
             this.saveImageFilterSettings();
+            this.applyImageFilterSettings();
         });
 
         document.getElementById('imageBlur').addEventListener('change', (e) => {
             this.imageFilterSettings.blur = e.target.checked;
             this.saveImageFilterSettings();
+            this.applyImageFilterSettings();
         });
 
         document.getElementById('imageBackgroundFilter').addEventListener('change', (e) => {
             this.imageFilterSettings.applyToBackgroundImages = e.target.checked;
             this.saveImageFilterSettings();
+            this.applyImageFilterSettings();
         });
 
         document.getElementById('imageVideoThumbnails').addEventListener('change', (e) => {
             this.imageFilterSettings.applyToVideoThumbnails = e.target.checked;
             this.saveImageFilterSettings();
+            this.applyImageFilterSettings();
         });
 
         // Grayscale level slider
@@ -519,6 +523,8 @@ For more help, visit our documentation or contact support.
             this.imageFilterSettings.grayscaleLevel = parseInt(e.target.value);
             document.getElementById('grayscaleValue').textContent = e.target.value + '%';
             this.saveImageFilterSettings();
+            // Apply changes immediately to current page
+            this.applyImageFilterSettings();
         });
 
         // Blur level slider
@@ -526,6 +532,8 @@ For more help, visit our documentation or contact support.
             this.imageFilterSettings.blurLevel = parseInt(e.target.value);
             document.getElementById('blurValue').textContent = e.target.value + 'px';
             this.saveImageFilterSettings();
+            // Apply changes immediately to current page
+            this.applyImageFilterSettings();
         });
 
         // Opacity slider
@@ -533,6 +541,8 @@ For more help, visit our documentation or contact support.
             this.imageFilterSettings.opacity = parseFloat(e.target.value);
             document.getElementById('opacityValue').textContent = Math.round(e.target.value * 100) + '%';
             this.saveImageFilterSettings();
+            // Apply changes immediately to current page
+            this.applyImageFilterSettings();
         });
 
         // Domain management
@@ -622,6 +632,18 @@ For more help, visit our documentation or contact support.
                 <button class="remove-domain" onclick="optionsManager.removeBlacklistDomain('${domain}')">×</button>
             </div>
         `).join('');
+    }
+
+    async applyImageFilterSettings() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'updateImageFilterSettings',
+                settings: this.imageFilterSettings
+            });
+        } catch (error) {
+            console.error('Error applying image filter settings:', error);
+        }
     }
 
     async testImageFilter() {

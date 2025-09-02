@@ -84,6 +84,8 @@ class ImageFilter {
         
         if (this.settings.enabled) {
             this.startFiltering();
+            // Always update existing filtered images with new settings
+            this.updateExistingFilters();
         } else {
             this.stopFiltering();
         }
@@ -334,6 +336,28 @@ class ImageFilter {
         const filterValue = this.buildFilterValue();
         video.style.filter = filterValue;
         video.style.transition = 'filter 0.3s ease';
+    }
+
+    updateExistingFilters() {
+        // Update existing filtered images with new filter values
+        const filteredImages = document.querySelectorAll('.moderation-filtered');
+        filteredImages.forEach(img => {
+            if (!img.classList.contains('moderation-temp-unfiltered')) {
+                img.style.filter = this.buildFilterValue();
+            }
+        });
+        
+        // Update background filters
+        const bgFiltered = document.querySelectorAll('.moderation-bg-filtered');
+        bgFiltered.forEach(element => {
+            element.style.filter = this.buildFilterValue();
+        });
+        
+        // Update video filters
+        const videoFiltered = document.querySelectorAll('.moderation-video-filtered');
+        videoFiltered.forEach(video => {
+            video.style.filter = this.buildFilterValue();
+        });
     }
 
     clearAllFilters() {
