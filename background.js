@@ -136,6 +136,7 @@ class ModerationBackground {
 
     async logModerationAction(data, sender) {
         try {
+            console.log('Logging moderation action:', data);
             const logs = await this.getStoredData('moderationLogs') || [];
             const logEntry = {
                 id: Date.now(),
@@ -147,6 +148,7 @@ class ModerationBackground {
                 tabId: sender.tab?.id
             };
 
+            console.log('Created log entry with ID:', logEntry.id);
             logs.push(logEntry);
 
             // Keep only last 1000 entries
@@ -155,6 +157,7 @@ class ModerationBackground {
             }
 
             await this.setStoredData('moderationLogs', logs);
+            console.log('Moderation action logged successfully, total logs:', logs.length);
         } catch (error) {
             console.error('Error logging moderation action:', error);
         }
