@@ -31,22 +31,73 @@ class ModerationPopup {
     }
 
     async init() {
-        await this.loadSettings();
-        await this.loadMetrics();
-        await this.loadImageFilterSettings();
-        await this.checkAIStatus();
-        await this.checkImageFilterCompatibility();
-        await this.checkContentScriptStatus();
-        this.setupEventListeners();
-        this.updateUI();
-        this.startMetricsTracking();
-        this.startMetricsRefresh();
+        console.log('Popup initialization started...');
+        try {
+            console.log('Loading settings...');
+            await this.loadSettings();
+            console.log('Settings loaded');
+            
+            console.log('Loading metrics...');
+            await this.loadMetrics();
+            console.log('Metrics loaded');
+            
+            console.log('Loading image filter settings...');
+            await this.loadImageFilterSettings();
+            console.log('Image filter settings loaded');
+            
+            console.log('Checking AI status...');
+            await this.checkAIStatus();
+            console.log('AI status checked');
+            
+            console.log('Checking image filter compatibility...');
+            await this.checkImageFilterCompatibility();
+            console.log('Image filter compatibility checked');
+            
+            console.log('Checking content script status...');
+            await this.checkContentScriptStatus();
+            console.log('Content script status checked');
+            
+            console.log('Setting up event listeners...');
+            this.setupEventListeners();
+            console.log('Event listeners set up');
+            
+            console.log('Updating UI...');
+            this.updateUI();
+            console.log('UI updated');
+            
+            console.log('Starting metrics tracking...');
+            this.startMetricsTracking();
+            console.log('Metrics tracking started');
+            
+            console.log('Starting metrics refresh...');
+            this.startMetricsRefresh();
+            console.log('Metrics refresh started');
+            
+            console.log('Popup initialization completed successfully');
+        } catch (error) {
+            console.error('Error during popup initialization:', error);
+        }
         
         // Retry status checks after a delay to ensure they update
         setTimeout(() => {
+            console.log('Retrying status checks...');
             this.checkAIStatus();
             this.checkContentScriptStatus();
+            this.checkImageFilterCompatibility();
         }, 1000);
+        
+        // Add a simple test to verify popup is working
+        setTimeout(() => {
+            console.log('Popup test: Setting a simple status');
+            const testElement = document.getElementById('aiStatus');
+            if (testElement) {
+                const testText = testElement.querySelector('.status-text');
+                if (testText && testText.textContent === 'Checking...') {
+                    testText.textContent = 'Popup working - retrying...';
+                    console.log('Test status set successfully');
+                }
+            }
+        }, 2000);
     }
 
     setupEventListeners() {
@@ -461,29 +512,55 @@ class ModerationPopup {
 
     async checkImageFilterCompatibility() {
         try {
+            console.log('Checking image filter compatibility...');
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            console.log('Active tab:', tab);
+            
             const statusElement = document.getElementById('imageFilterStatus');
+            console.log('Image filter status element:', statusElement);
+            
+            if (!statusElement) {
+                console.error('Image filter status element not found');
+                return;
+            }
+            
             const statusText = statusElement.querySelector('.status-text');
+            console.log('Image filter status text element:', statusText);
+            
+            if (!statusText) {
+                console.error('Image filter status text element not found');
+                return;
+            }
             
             if (!tab) {
+                console.log('No active tab found');
                 statusElement.className = 'filter-status incompatible';
                 statusText.textContent = 'No active tab';
                 return;
             }
 
-            if (await this.isContentScriptSupported(tab)) {
+            const isSupported = await this.isContentScriptSupported(tab);
+            console.log('Content script supported:', isSupported);
+            
+            if (isSupported) {
+                console.log('Setting image filter status to compatible');
                 statusElement.className = 'filter-status compatible';
                 statusText.textContent = 'Image filtering available';
             } else {
+                console.log('Setting image filter status to incompatible');
                 statusElement.className = 'filter-status incompatible';
                 statusText.textContent = 'Not supported on this page';
             }
         } catch (error) {
             console.error('Error checking image filter compatibility:', error);
             const statusElement = document.getElementById('imageFilterStatus');
-            const statusText = statusElement.querySelector('.status-text');
-            statusElement.className = 'filter-status incompatible';
-            statusText.textContent = 'Error checking compatibility';
+            if (statusElement) {
+                const statusText = statusElement.querySelector('.status-text');
+                if (statusText) {
+                    statusElement.className = 'filter-status incompatible';
+                    statusText.textContent = 'Error checking compatibility';
+                }
+            }
         }
     }
 
