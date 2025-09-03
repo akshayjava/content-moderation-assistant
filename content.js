@@ -114,10 +114,12 @@ class ContentModerator {
             try {
                 switch (request.action) {
                     case 'flag':
+                        console.log('Content script received flag action');
                         this.flagContent();
                         sendResponse({ success: true });
                         break;
                     case 'escalate':
+                        console.log('Content script received escalate action');
                         this.escalateContent();
                         sendResponse({ success: true });
                         break;
@@ -630,8 +632,26 @@ class ContentModerator {
         if (selectedText) {
             this.performQuickAction('flag', { name: 'Manual Flag', severity: 'medium' });
         } else {
-            // Show error message if no content is selected
-            this.showActionFeedback('flag', 'Please select content to flag');
+            // If no text is selected, allow flagging the current page
+            const pageTitle = document.title || 'Current Page';
+            const pageUrl = window.location.href;
+            
+            // Create a manual flag for the current page
+            const data = {
+                action: 'flag',
+                content: `Page flagged: ${pageTitle}`,
+                url: pageUrl,
+                timestamp: Date.now(),
+                rule: { name: 'Manual Page Flag', severity: 'medium' }
+            };
+
+            // Send to background script for processing
+            chrome.runtime.sendMessage({
+                type: 'moderationAction',
+                data: data
+            });
+
+            this.showActionFeedback('flag', 'Page flagged successfully');
         }
     }
 
@@ -640,7 +660,26 @@ class ContentModerator {
         if (selectedText) {
             this.performQuickAction('escalate', { name: 'Manual Escalation', severity: 'high' });
         } else {
-            this.showActionFeedback('escalate', 'Please select content to escalate');
+            // If no text is selected, allow escalating the current page
+            const pageTitle = document.title || 'Current Page';
+            const pageUrl = window.location.href;
+            
+            // Create a manual escalation for the current page
+            const data = {
+                action: 'escalate',
+                content: `Page escalated: ${pageTitle}`,
+                url: pageUrl,
+                timestamp: Date.now(),
+                rule: { name: 'Manual Page Escalation', severity: 'high' }
+            };
+
+            // Send to background script for processing
+            chrome.runtime.sendMessage({
+                type: 'moderationAction',
+                data: data
+            });
+
+            this.showActionFeedback('escalate', 'Page escalated successfully');
         }
     }
 

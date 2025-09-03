@@ -76,10 +76,32 @@ class ModerationPopup {
             // Send message to content script
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             
-            const response = await chrome.tabs.sendMessage(tab.id, {
-                action: action,
-                timestamp: Date.now()
-            });
+            if (!tab) {
+                this.showNotification('No active tab found', 'error');
+                return;
+            }
+
+            // Check if content scripts are supported on this page
+            if (!(await this.isContentScriptSupported(tab))) {
+                this.showNotification(`${action.charAt(0).toUpperCase() + action.slice(1)} action is not supported on this page. Please navigate to a regular webpage.`, 'error');
+                return;
+            }
+
+            let response;
+            try {
+                response = await chrome.tabs.sendMessage(tab.id, {
+                    action: action,
+                    timestamp: Date.now()
+                });
+            } catch (messageError) {
+                console.error('Message error:', messageError);
+                if (messageError.message.includes('receiving end does not exist')) {
+                    this.showNotification('Content script not loaded. Please refresh the page and try again.', 'error');
+                } else {
+                    this.showNotification(`Failed to communicate with page: ${messageError.message}`, 'error');
+                }
+                return;
+            }
 
             if (response && response.success) {
                 // Send action to background script for proper tracking
