@@ -135,6 +135,16 @@ class ContentModerator {
                         console.log('Ping received, responding...');
                         sendResponse({ success: true, message: 'Content script is loaded' });
                         break;
+                    case 'test':
+                        console.log('Test message received, responding...');
+                        sendResponse({ 
+                            success: true, 
+                            message: 'Content script test successful',
+                            timestamp: new Date().toISOString(),
+                            url: window.location.href,
+                            readyState: document.readyState
+                        });
+                        break;
                     case 'flag':
                         console.log('Content script received flag action');
                         this.flagContent();
@@ -871,16 +881,65 @@ class ContentModerator {
 // Initialize content moderator when page loads
 console.log('Content script initialization starting...');
 console.log('Document ready state:', document.readyState);
+console.log('Current URL:', window.location.href);
+console.log('Script loaded at:', new Date().toISOString());
 
+// Function to initialize the content moderator
+function initializeContentModerator() {
+    try {
+        console.log('Creating ContentModerator instance...');
+        window.contentModerator = new ContentModerator();
+        console.log('ContentModerator instance created and assigned to window.contentModerator');
+        console.log('Content script fully initialized and ready');
+        return true;
+    } catch (error) {
+        console.error('Error creating ContentModerator:', error);
+        return false;
+    }
+}
+
+// Try multiple initialization strategies
 if (document.readyState === 'loading') {
     console.log('Document still loading, waiting for DOMContentLoaded...');
     document.addEventListener('DOMContentLoaded', () => {
         console.log('DOMContentLoaded fired, creating ContentModerator...');
-        window.contentModerator = new ContentModerator();
-        console.log('ContentModerator instance created and assigned to window.contentModerator');
+        initializeContentModerator();
     });
+} else if (document.readyState === 'interactive') {
+    console.log('Document is interactive, creating ContentModerator...');
+    initializeContentModerator();
 } else {
-    console.log('Document already loaded, creating ContentModerator immediately...');
-    window.contentModerator = new ContentModerator();
-    console.log('ContentModerator instance created and assigned to window.contentModerator');
+    console.log('Document is complete, creating ContentModerator immediately...');
+    initializeContentModerator();
 }
+
+// Fallback initialization after a short delay
+setTimeout(() => {
+    if (!window.contentModerator) {
+        console.log('Fallback initialization: ContentModerator not found, trying again...');
+        initializeContentModerator();
+    }
+}, 1000);
+
+// Global test function for debugging
+window.testContentScript = function() {
+    console.log('=== Content Script Test ===');
+    console.log('ContentModerator exists:', !!window.contentModerator);
+    console.log('ContentModerator instance:', window.contentModerator);
+    console.log('Document ready state:', document.readyState);
+    console.log('Current URL:', window.location.href);
+    console.log('Script loaded at:', new Date().toISOString());
+    
+    if (window.contentModerator) {
+        console.log('ContentModerator isActive:', window.contentModerator.isActive);
+        console.log('ContentModerator rules count:', window.contentModerator.rules.length);
+        console.log('ContentModerator geminiAnalyzer:', !!window.contentModerator.geminiAnalyzer);
+    }
+    
+    return {
+        loaded: !!window.contentModerator,
+        readyState: document.readyState,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+    };
+};

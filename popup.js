@@ -149,13 +149,23 @@ class ModerationPopup {
     // updateMetrics method removed - now using background script metrics
 
     updateMetricsDisplay() {
-        document.getElementById('itemsReviewed').textContent = this.metrics.itemsReviewed;
-        document.getElementById('violationsFound').textContent = this.metrics.violationsFound;
+        // Calculate total actions
+        const totalActions = (this.metrics.actions?.flag || 0) + 
+                           (this.metrics.actions?.escalate || 0) + 
+                           (this.metrics.actions?.block || 0);
         
-        const avgTime = this.metrics.itemsReviewed > 0 
-            ? Math.round(this.metrics.totalTime / this.metrics.itemsReviewed / 1000 / 60)
-            : 0;
-        document.getElementById('avgTime').textContent = `${avgTime}m`;
+        // Update the display elements
+        document.getElementById('totalActions').textContent = totalActions;
+        document.getElementById('flaggedCount').textContent = this.metrics.actions?.flag || 0;
+        document.getElementById('escalatedCount').textContent = this.metrics.actions?.escalate || 0;
+        document.getElementById('blockedCount').textContent = this.metrics.actions?.block || 0;
+        
+        console.log('Updated metrics display:', {
+            totalActions,
+            flagged: this.metrics.actions?.flag || 0,
+            escalated: this.metrics.actions?.escalate || 0,
+            blocked: this.metrics.actions?.block || 0
+        });
     }
 
     toggleTimer() {
@@ -256,29 +266,41 @@ class ModerationPopup {
 
     async loadMetrics() {
         try {
-            // Get today's metrics from background script
-            const today = new Date().toDateString();
-            const result = await chrome.storage.local.get(['dailyMetrics']);
+            console.log('Loading metrics from background script...');
+            // Get metrics from background script
+            const response = await chrome.runtime.sendMessage({ type: 'getMetrics' });
+            console.log('Metrics response from background:', response);
             
-            if (result.dailyMetrics && result.dailyMetrics[today]) {
-                const todayMetrics = result.dailyMetrics[today];
+            if (response) {
                 this.metrics = {
-                    itemsReviewed: todayMetrics.itemsReviewed || 0,
-                    violationsFound: todayMetrics.violationsFound || 0,
-                    totalTime: todayMetrics.totalTime || 0,
-                    startTime: todayMetrics.startTime || Date.now()
+                    itemsReviewed: response.itemsReviewed || 0,
+                    violationsFound: response.violationsFound || 0,
+                    totalTime: response.totalTime || 0,
+                    startTime: response.startTime || Date.now(),
+                    actions: response.actions || { flag: 0, escalate: 0, block: 0 }
                 };
+                console.log('Metrics loaded successfully:', this.metrics);
             } else {
                 // Initialize with default values
                 this.metrics = {
                     itemsReviewed: 0,
                     violationsFound: 0,
                     totalTime: 0,
-                    startTime: Date.now()
+                    startTime: Date.now(),
+                    actions: { flag: 0, escalate: 0, block: 0 }
                 };
+                console.log('Using default metrics:', this.metrics);
             }
         } catch (error) {
             console.error('Error loading metrics:', error);
+            // Fallback to default values
+            this.metrics = {
+                itemsReviewed: 0,
+                violationsFound: 0,
+                totalTime: 0,
+                startTime: Date.now(),
+                actions: { flag: 0, escalate: 0, block: 0 }
+            };
         }
     }
 
@@ -453,6 +475,19 @@ class ModerationPopup {
             } else {
                 statusElement.className = 'status-indicator error';
                 statusText.textContent = 'Not loaded - refresh page';
+                
+                // Try to get more detailed error information
+                try {
+                    const response = await chrome.tabs.sendMessage(tab.id, { action: 'test' });
+                    console.log('Test response:', response);
+                } catch (testError) {
+                    console.log('Test message failed:', testError.message);
+                    if (testError.message.includes('receiving end does not exist')) {
+                        statusText.textContent = 'Script not injected - use Reload Script';
+                    } else if (testError.message.includes('Could not establish connection')) {
+                        statusText.textContent = 'Connection failed - refresh page';
+                    }
+                }
             }
         } catch (error) {
             console.error('Error checking content script status:', error);

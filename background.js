@@ -105,6 +105,8 @@ class ModerationBackground {
 
     async handleModerationAction(data, sender) {
         try {
+            console.log('Background: Handling moderation action:', data);
+            
             // Log the action
             await this.logModerationAction(data, sender);
 
@@ -114,6 +116,8 @@ class ModerationBackground {
                 timestamp: Date.now(),
                 url: data.url
             });
+
+            console.log('Background: Metrics updated for action:', data.action);
 
             // Send notification if needed
             if (data.action === 'escalate' || data.action === 'block') {
@@ -158,8 +162,11 @@ class ModerationBackground {
 
     async updateMetrics(data) {
         try {
+            console.log('Background: Updating metrics with data:', data);
             const today = new Date().toDateString();
             const metrics = await this.getStoredData('dailyMetrics') || {};
+            
+            console.log('Background: Current metrics for today:', metrics[today]);
             
             if (!metrics[today]) {
                 metrics[today] = {
@@ -173,16 +180,20 @@ class ModerationBackground {
                     totalTime: 0,
                     startTime: Date.now()
                 };
+                console.log('Background: Created new metrics for today');
             }
 
             metrics[today].itemsReviewed++;
+            console.log('Background: Items reviewed incremented to:', metrics[today].itemsReviewed);
             
             if (data.action && ['flag', 'escalate', 'block'].includes(data.action)) {
                 metrics[today].violationsFound++;
                 metrics[today].actions[data.action]++;
+                console.log('Background: Action', data.action, 'incremented to:', metrics[today].actions[data.action]);
             }
 
             await this.setStoredData('dailyMetrics', metrics);
+            console.log('Background: Metrics saved to storage:', metrics[today]);
         } catch (error) {
             console.error('Error updating metrics:', error);
         }
@@ -192,12 +203,15 @@ class ModerationBackground {
         try {
             const today = new Date().toDateString();
             const metrics = await this.getStoredData('dailyMetrics') || {};
-            return metrics[today] || {
+            const todayMetrics = metrics[today] || {
                 itemsReviewed: 0,
                 violationsFound: 0,
                 actions: { flag: 0, escalate: 0, block: 0 },
                 totalTime: 0
             };
+            
+            console.log('Background: Getting metrics for today:', today, 'Result:', todayMetrics);
+            return todayMetrics;
         } catch (error) {
             console.error('Error getting metrics:', error);
             return null;
