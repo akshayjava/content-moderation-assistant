@@ -79,14 +79,18 @@ class ImageFilter {
     }
 
     updateSettings(newSettings) {
+        console.log('ImageFilter updateSettings called with:', newSettings);
         this.settings = { ...this.settings, ...newSettings };
+        console.log('Updated settings:', this.settings);
         this.saveSettings();
         
         if (this.settings.enabled) {
+            console.log('Settings enabled, starting filtering...');
             this.startFiltering();
             // Always update existing filtered images with new settings
             this.updateExistingFilters();
         } else {
+            console.log('Settings disabled, stopping filtering...');
             this.stopFiltering();
         }
     }
@@ -434,6 +438,7 @@ function initializeImageFilter() {
     try {
         if (!imageFilter) {
             imageFilter = new ImageFilter();
+            window.imageFilter = imageFilter; // Make it available globally
             console.log('Image filter initialized successfully');
         }
     } catch (error) {

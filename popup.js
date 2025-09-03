@@ -341,6 +341,7 @@ class ModerationPopup {
 
     async updateQuickGrayscale(event) {
         try {
+            console.log('updateQuickGrayscale called with value:', event.target.value);
             const grayscaleLevel = parseInt(event.target.value);
             const grayscaleValue = document.getElementById('quickGrayscaleValue');
             
@@ -349,22 +350,28 @@ class ModerationPopup {
             }
             
             grayscaleValue.textContent = grayscaleLevel + '%';
+            console.log('Updated grayscale value display to:', grayscaleLevel + '%');
 
             // Update the image filter settings
             this.imageFilterSettings.grayscaleLevel = grayscaleLevel;
+            console.log('Updated imageFilterSettings:', this.imageFilterSettings);
             await chrome.storage.sync.set({ imageFilterSettings: this.imageFilterSettings });
+            console.log('Saved settings to storage');
 
             // Apply the change to the current page
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            console.log('Active tab:', tab);
             
             if (!tab) {
                 throw new Error('No active tab found');
             }
 
+            console.log('Sending message to content script...');
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'updateImageFilterSettings',
                 settings: this.imageFilterSettings
             });
+            console.log('Response from content script:', response);
 
             if (response && response.success) {
                 this.showNotification(`Grayscale set to ${grayscaleLevel}%`, 'success');

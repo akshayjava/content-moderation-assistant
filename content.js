@@ -148,10 +148,15 @@ class ContentModerator {
                         }
                         break;
                     case 'updateImageFilterSettings':
+                        console.log('Content script received updateImageFilterSettings message:', request.settings);
+                        console.log('window.imageFilter available:', !!window.imageFilter);
                         if (window.imageFilter) {
+                            console.log('Updating image filter settings...');
                             window.imageFilter.updateSettings(request.settings);
+                            console.log('Image filter settings updated successfully');
                             sendResponse({ success: true });
                         } else {
+                            console.log('Image filter not available, sending error response');
                             sendResponse({ success: false, error: 'Image filter not available' });
                         }
                         break;
