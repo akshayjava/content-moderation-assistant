@@ -1,6 +1,7 @@
 // Policy Manager - Configure AI-powered content analysis
 class PolicyManager {
     constructor() {
+        console.log('PolicyManager constructor called');
         this.geminiAnalyzer = null;
         this.settings = {
             analysisMode: 'automatic',
@@ -14,17 +15,43 @@ class PolicyManager {
     }
 
     async init() {
-        // Initialize Gemini analyzer
-        this.geminiAnalyzer = new GeminiContentAnalyzer();
-        await this.geminiAnalyzer.init();
-        
-        this.setupEventListeners();
-        await this.loadSettings();
-        await this.loadApiKey();
-        this.renderGeneralPolicies();
-        this.renderCustomPolicies();
-        this.updateApiStatus();
-        this.updateUI();
+        try {
+            console.log('PolicyManager init started');
+            
+            // Initialize Gemini analyzer
+            console.log('Creating GeminiContentAnalyzer...');
+            this.geminiAnalyzer = new GeminiContentAnalyzer();
+            console.log('GeminiContentAnalyzer created, initializing...');
+            await this.geminiAnalyzer.init();
+            console.log('GeminiContentAnalyzer initialized');
+            
+            console.log('Setting up event listeners...');
+            this.setupEventListeners();
+            console.log('Event listeners set up');
+            
+            console.log('Loading settings...');
+            await this.loadSettings();
+            console.log('Settings loaded');
+            
+            console.log('Loading API key...');
+            await this.loadApiKey();
+            console.log('API key loaded');
+            
+            console.log('Rendering policies...');
+            this.renderGeneralPolicies();
+            this.renderCustomPolicies();
+            console.log('Policies rendered');
+            
+            console.log('Updating UI...');
+            this.updateApiStatus();
+            this.updateUI();
+            console.log('UI updated');
+            
+            console.log('PolicyManager init completed successfully');
+        } catch (error) {
+            console.error('Error in PolicyManager init:', error);
+            throw error;
+        }
     }
 
     setupEventListeners() {
@@ -567,5 +594,28 @@ class PolicyManager {
 // Initialize policy manager when DOM is loaded
 let policyManager;
 document.addEventListener('DOMContentLoaded', () => {
-    policyManager = new PolicyManager();
+    try {
+        console.log('Initializing Policy Manager...');
+        policyManager = new PolicyManager();
+        console.log('Policy Manager initialized successfully');
+    } catch (error) {
+        console.error('Error initializing Policy Manager:', error);
+        // Show error notification to user
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+        errorDiv.textContent = 'Error loading Policy Manager. Please check console for details.';
+        document.body.appendChild(errorDiv);
+    }
 });
