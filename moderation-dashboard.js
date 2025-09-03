@@ -52,6 +52,26 @@ class ModerationDashboard {
         // Action controls
         document.getElementById('selectAll').addEventListener('click', () => this.selectAll());
         document.getElementById('bulkDelete').addEventListener('click', () => this.bulkDelete());
+        
+        // Action buttons (using event delegation to avoid CSP issues)
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('[data-action]')) {
+                const action = e.target.getAttribute('data-action');
+                const actionId = e.target.getAttribute('data-id');
+                
+                switch (action) {
+                    case 'view':
+                        this.viewAction(actionId);
+                        break;
+                    case 'copy':
+                        this.copyAction(actionId);
+                        break;
+                    case 'delete':
+                        this.deleteAction(actionId);
+                        break;
+                }
+            }
+        });
 
         // Modal events
         document.getElementById('closeModal').addEventListener('click', () => this.hideModal());
@@ -217,13 +237,13 @@ class ModerationDashboard {
                 ${action.url ? `<a href="${action.url}" target="_blank" class="action-url">${action.url}</a>` : ''}
                 
                 <div class="action-actions">
-                    <button class="btn btn-small btn-primary" onclick="dashboard.viewAction('${action.id}')">
+                    <button class="btn btn-small btn-primary" data-action="view" data-id="${action.id}">
                         View Details
                     </button>
-                    <button class="btn btn-small btn-secondary" onclick="dashboard.copyAction('${action.id}')">
+                    <button class="btn btn-small btn-secondary" data-action="copy" data-id="${action.id}">
                         Copy
                     </button>
-                    <button class="btn btn-small btn-danger" onclick="dashboard.deleteAction('${action.id}')">
+                    <button class="btn btn-small btn-danger" data-action="delete" data-id="${action.id}">
                         Delete
                     </button>
                 </div>

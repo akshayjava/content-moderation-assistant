@@ -143,6 +143,11 @@ class ModerationPopup {
         
         document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
         document.getElementById('refreshMetrics').addEventListener('click', () => this.refreshMetrics());
+        
+        // Test button
+        document.getElementById('testButton').addEventListener('click', () => {
+            alert('Test button works!');
+        });
 
         // Mindful moment
         document.getElementById('mindfulMoment').addEventListener('click', () => this.showMindfulMoment());
@@ -660,11 +665,17 @@ class ModerationPopup {
 
             // Try to inject the content script manually first
             try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['content.js']
-                });
-                this.showNotification('Content script injected successfully', 'success');
+                if (!chrome.scripting || !chrome.scripting.executeScript) {
+                    console.warn('Chrome scripting API not available, reloading page instead');
+                    await chrome.tabs.reload(tab.id);
+                    this.showNotification('Page reloaded to reload content script', 'success');
+                } else {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['content.js']
+                    });
+                    this.showNotification('Content script injected successfully', 'success');
+                }
             } catch (injectError) {
                 console.log('Manual injection failed, reloading page:', injectError);
                 // If manual injection fails, reload the tab

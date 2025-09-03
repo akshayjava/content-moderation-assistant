@@ -292,6 +292,12 @@ class ModerationBackground {
 
     async getPageContent(tabId) {
         try {
+            // Check if scripting API is available
+            if (!chrome.scripting || !chrome.scripting.executeScript) {
+                console.warn('Chrome scripting API not available');
+                return null;
+            }
+            
             const results = await chrome.scripting.executeScript({
                 target: { tabId: tabId },
                 func: () => {
