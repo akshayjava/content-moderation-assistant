@@ -531,7 +531,7 @@ class PolicyManager {
     }
 
     goBackToOptions() {
-        window.location.href = 'options.html';
+        chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
     }
 
     showNotification(message, type = 'success') {
