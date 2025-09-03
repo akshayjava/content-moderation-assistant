@@ -69,11 +69,23 @@ class ModerationPopup {
         const openSettingsBtn = document.getElementById('openSettings');
         console.log('Settings button element:', openSettingsBtn);
         if (openSettingsBtn) {
-            openSettingsBtn.addEventListener('click', () => {
-                console.log('Settings button clicked');
+            // Test if button is clickable
+            console.log('Button style:', window.getComputedStyle(openSettingsBtn));
+            console.log('Button disabled:', openSettingsBtn.disabled);
+            console.log('Button pointer-events:', window.getComputedStyle(openSettingsBtn).pointerEvents);
+            
+            openSettingsBtn.addEventListener('click', (e) => {
+                console.log('Settings button clicked!', e);
+                e.preventDefault();
+                e.stopPropagation();
                 this.openSettings();
             });
             console.log('Settings button event listener added');
+            
+            // Also try adding a mousedown event to test
+            openSettingsBtn.addEventListener('mousedown', () => {
+                console.log('Settings button mousedown detected');
+            });
         } else {
             console.error('Settings button not found');
         }
@@ -818,6 +830,32 @@ class ModerationPopup {
         }, 3000);
     }
 }
+
+// Global function for onclick fallback
+window.openSettings = function() {
+    try {
+        console.log('Global openSettings called');
+        // Try multiple methods
+        try {
+            chrome.runtime.openOptionsPage();
+            console.log('Used chrome.runtime.openOptionsPage()');
+        } catch (e1) {
+            console.log('chrome.runtime.openOptionsPage() failed, trying chrome.tabs.create()');
+            chrome.tabs.create({
+                url: chrome.runtime.getURL('options.html')
+            });
+        }
+    } catch (error) {
+        console.error('Error in global openSettings:', error);
+        // Last resort: try to navigate directly
+        try {
+            window.location.href = chrome.runtime.getURL('options.html');
+        } catch (e2) {
+            console.error('All methods failed:', e2);
+            alert('Error opening settings page. Please try right-clicking the extension icon and selecting "Options".');
+        }
+    }
+};
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
