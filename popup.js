@@ -35,6 +35,7 @@ class ModerationPopup {
         await this.loadMetrics();
         await this.loadImageFilterSettings();
         await this.checkAIStatus();
+        await this.checkImageFilterCompatibility();
         this.setupEventListeners();
         this.updateUI();
         this.startMetricsTracking();
@@ -339,6 +340,44 @@ class ModerationPopup {
         chrome.tabs.create({ url: chrome.runtime.getURL('policy-manager.html') });
     }
 
+    async checkImageFilterCompatibility() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const statusElement = document.getElementById('imageFilterStatus');
+            const statusText = statusElement.querySelector('.status-text');
+            
+            if (!tab) {
+                statusElement.className = 'filter-status incompatible';
+                statusText.textContent = 'No active tab';
+                return;
+            }
+
+            if (await this.isContentScriptSupported(tab)) {
+                statusElement.className = 'filter-status compatible';
+                statusText.textContent = 'Image filtering available';
+            } else {
+                statusElement.className = 'filter-status incompatible';
+                statusText.textContent = 'Not supported on this page';
+            }
+        } catch (error) {
+            console.error('Error checking image filter compatibility:', error);
+            const statusElement = document.getElementById('imageFilterStatus');
+            const statusText = statusElement.querySelector('.status-text');
+            statusElement.className = 'filter-status incompatible';
+            statusText.textContent = 'Error checking compatibility';
+        }
+    }
+
+    async isContentScriptSupported(tab) {
+        // Check if the tab URL supports content scripts
+        const unsupportedProtocols = ['chrome:', 'chrome-extension:', 'moz-extension:', 'edge:', 'about:', 'data:', 'file:'];
+        const url = tab.url || tab.pendingUrl;
+        
+        if (!url) return false;
+        
+        return !unsupportedProtocols.some(protocol => url.startsWith(protocol));
+    }
+
     async updateQuickGrayscale(event) {
         try {
             console.log('updateQuickGrayscale called with value:', event.target.value);
@@ -366,12 +405,27 @@ class ModerationPopup {
                 throw new Error('No active tab found');
             }
 
+            // Check if content scripts are supported on this page
+            if (!(await this.isContentScriptSupported(tab))) {
+                throw new Error('Image filtering is not supported on this page. Please navigate to a regular webpage.');
+            }
+
             console.log('Sending message to content script...');
-            const response = await chrome.tabs.sendMessage(tab.id, {
-                action: 'updateImageFilterSettings',
-                settings: this.imageFilterSettings
-            });
-            console.log('Response from content script:', response);
+            let response;
+            try {
+                response = await chrome.tabs.sendMessage(tab.id, {
+                    action: 'updateImageFilterSettings',
+                    settings: this.imageFilterSettings
+                });
+                console.log('Response from content script:', response);
+            } catch (error) {
+                console.log('Error sending message to content script:', error);
+                if (error.message.includes('receiving end does not exist')) {
+                    throw new Error('Content script not loaded on this page. Please refresh the page and try again.');
+                } else {
+                    throw new Error(`Failed to communicate with page: ${error.message}`);
+                }
+            }
 
             if (response && response.success) {
                 this.showNotification(`Grayscale set to ${grayscaleLevel}%`, 'success');
@@ -439,6 +493,12 @@ class ModerationPopup {
             
             if (!tab) {
                 this.showNotification('No active tab found', 'error');
+                return;
+            }
+
+            // Check if content scripts are supported on this page
+            if (!(await this.isContentScriptSupported(tab))) {
+                this.showNotification('Image filtering is not supported on this page. Please navigate to a regular webpage.', 'error');
                 return;
             }
 
