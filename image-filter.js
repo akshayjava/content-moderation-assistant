@@ -110,6 +110,8 @@ class ImageFilter {
         this.filterExistingImages();
         this.setupImageObserver();
         this.setupVideoObserver();
+        this.setupIntersectionObserver();
+        this.setupScrollListener();
     }
 
     stopFiltering() {
@@ -118,12 +120,26 @@ class ImageFilter {
             this.observer.disconnect();
             this.observer = null;
         }
+        if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+            this.intersectionObserver = null;
+        }
+        if (this.scrollListener) {
+            window.removeEventListener('scroll', this.scrollListener);
+            this.scrollListener = null;
+        }
     }
 
     filterExistingImages() {
         // Filter all existing images
         const images = document.querySelectorAll('img');
-        images.forEach(img => this.filterImage(img));
+        images.forEach(img => {
+            this.filterImage(img);
+            // Also observe with intersection observer for future visibility changes
+            if (this.intersectionObserver && !this.shouldSkipImage(img)) {
+                this.intersectionObserver.observe(img);
+            }
+        });
         
         // Filter background images
         if (this.settings.applyToBackgroundImages) {
@@ -289,12 +305,22 @@ class ImageFilter {
                         // Check for new images
                         if (node.tagName === 'IMG') {
                             this.filterImage(node);
+                            // Also observe with intersection observer
+                            if (this.intersectionObserver && !this.shouldSkipImage(node)) {
+                                this.intersectionObserver.observe(node);
+                            }
                         }
                         
                         // Check for images within added nodes
                         const images = node.querySelectorAll && node.querySelectorAll('img');
                         if (images) {
-                            images.forEach(img => this.filterImage(img));
+                            images.forEach(img => {
+                                this.filterImage(img);
+                                // Also observe with intersection observer
+                                if (this.intersectionObserver && !this.shouldSkipImage(img)) {
+                                    this.intersectionObserver.observe(img);
+                                }
+                            });
                         }
                     }
                 });
@@ -427,6 +453,79 @@ class ImageFilter {
             filteredImages: this.filteredImages.size,
             enabled: this.settings.enabled,
             settings: this.settings
+        };
+    }
+
+    setupIntersectionObserver() {
+        // Use Intersection Observer to detect when images come into view
+        this.intersectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Image is now visible, apply filters if not already applied
+                    const img = entry.target;
+                    if (img.tagName === 'IMG' && !this.shouldSkipImage(img)) {
+                        const imageId = this.getImageId(img);
+                        if (!this.filteredImages.has(imageId)) {
+                            console.log('Applying filters to newly visible image:', img.src);
+                            this.filterImage(img);
+                        }
+                    }
+                }
+            });
+        }, {
+            root: null, // Use viewport as root
+            rootMargin: '50px', // Start filtering 50px before image comes into view
+            threshold: 0.1 // Trigger when 10% of image is visible
+        });
+
+        // Observe all existing images
+        const images = document.querySelectorAll('img');
+        images.forEach(img => {
+            if (!this.shouldSkipImage(img)) {
+                this.intersectionObserver.observe(img);
+            }
+        });
+    }
+
+    setupScrollListener() {
+        // Add scroll listener to handle images that come into view during scroll
+        this.scrollListener = this.throttle(() => {
+            // Find images that are now visible but not yet filtered
+            const images = document.querySelectorAll('img');
+            images.forEach(img => {
+                if (!this.shouldSkipImage(img) && this.isElementInViewport(img)) {
+                    const imageId = this.getImageId(img);
+                    if (!this.filteredImages.has(imageId)) {
+                        console.log('Applying filters to scrolled-into-view image:', img.src);
+                        this.filterImage(img);
+                    }
+                }
+            });
+        }, 100); // Throttle to 100ms to avoid excessive calls
+
+        window.addEventListener('scroll', this.scrollListener, { passive: true });
+    }
+
+    isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    }
+
+    throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
         };
     }
 }
