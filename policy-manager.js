@@ -32,6 +32,7 @@ class PolicyManager {
         document.getElementById('saveApiKey').addEventListener('click', () => this.saveApiKey());
         document.getElementById('testApiKey').addEventListener('click', () => this.testApiConnection());
         document.getElementById('toggleApiKey').addEventListener('click', () => this.toggleApiKeyVisibility());
+        document.getElementById('debugApi').addEventListener('click', () => this.debugApiStatus());
 
         // Navigation
         document.getElementById('backToOptions').addEventListener('click', () => this.goBackToOptions());
@@ -98,9 +99,9 @@ class PolicyManager {
 
     async loadApiKey() {
         try {
-            const result = await chrome.storage.sync.get(['geminiApiKey']);
-            if (result.geminiApiKey) {
-                this.geminiAnalyzer.apiKey = result.geminiApiKey;
+            // The analyzer's init() method already calls loadConfiguration()
+            // Just check if it's configured and update the UI
+            if (this.geminiAnalyzer.isConfigured()) {
                 // Update the API key input field to show it's configured (but don't show the actual key)
                 const apiKeyInput = document.getElementById('apiKey');
                 if (apiKeyInput) {
@@ -137,11 +138,8 @@ class PolicyManager {
         }
 
         try {
-            // Save to storage
-            await chrome.storage.sync.set({ geminiApiKey: apiKey });
-            
-            // Set in analyzer
-            this.geminiAnalyzer.apiKey = apiKey;
+            // Use the analyzer's setApiKey method which handles storage properly
+            await this.geminiAnalyzer.setApiKey(apiKey);
             
             // Update UI to show it's configured
             const apiKeyInput = document.getElementById('apiKey');
@@ -149,11 +147,13 @@ class PolicyManager {
                 apiKeyInput.value = '••••••••••••••••';
             }
             
+            // Force refresh the status
+            await this.loadApiKey();
             this.updateApiStatus();
             this.showNotification('API key saved successfully!', 'success');
         } catch (error) {
             console.error('Error saving API key:', error);
-            this.showNotification('Error saving API key', 'error');
+            this.showNotification('Error saving API key: ' + error.message, 'error');
         }
     }
 
@@ -211,12 +211,23 @@ class PolicyManager {
         } else if (status === 'error') {
             statusElement.className = 'status-indicator error';
             statusText.textContent = 'Connection failed';
-        } else if (this.geminiAnalyzer.isConfigured()) {
-            statusElement.className = 'status-indicator';
+        } else if (this.geminiAnalyzer && this.geminiAnalyzer.isConfigured()) {
+            statusElement.className = 'status-indicator connected';
             statusText.textContent = 'Configured (not tested)';
         } else {
             statusElement.className = 'status-indicator';
             statusText.textContent = 'Not configured';
+        }
+    }
+
+    async debugApiStatus() {
+        try {
+            const result = await chrome.storage.sync.get(['geminiApiKey']);
+            console.log('Storage result:', result);
+            console.log('Analyzer configured:', this.geminiAnalyzer ? this.geminiAnalyzer.isConfigured() : 'No analyzer');
+            console.log('Analyzer API key:', this.geminiAnalyzer ? this.geminiAnalyzer.apiKey : 'No analyzer');
+        } catch (error) {
+            console.error('Debug error:', error);
         }
     }
 
