@@ -50,6 +50,8 @@ class ModerationPopup {
     }
 
     setupEventListeners() {
+        console.log('Setting up event listeners...');
+        
         // Quick action buttons
         document.getElementById('flagBtn').addEventListener('click', () => this.performAction('flag'));
         document.getElementById('escalateBtn').addEventListener('click', () => this.performAction('escalate'));
@@ -64,7 +66,18 @@ class ModerationPopup {
         document.getElementById('quickGrayscale').addEventListener('input', (e) => this.updateQuickGrayscale(e));
 
         // Settings
-        document.getElementById('openSettings').addEventListener('click', () => this.openSettings());
+        const openSettingsBtn = document.getElementById('openSettings');
+        console.log('Settings button element:', openSettingsBtn);
+        if (openSettingsBtn) {
+            openSettingsBtn.addEventListener('click', () => {
+                console.log('Settings button clicked');
+                this.openSettings();
+            });
+            console.log('Settings button event listener added');
+        } else {
+            console.error('Settings button not found');
+        }
+        
         document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
         document.getElementById('refreshMetrics').addEventListener('click', () => this.refreshMetrics());
 
@@ -680,7 +693,23 @@ class ModerationPopup {
     }
 
     openSettings() {
-        chrome.runtime.openOptionsPage();
+        try {
+            console.log('Opening settings page...');
+            chrome.runtime.openOptionsPage();
+            console.log('Settings page opened successfully');
+        } catch (error) {
+            console.error('Error opening settings page:', error);
+            // Fallback: try opening in a new tab
+            try {
+                chrome.tabs.create({
+                    url: chrome.runtime.getURL('options.html')
+                });
+                console.log('Settings page opened in new tab');
+            } catch (fallbackError) {
+                console.error('Error opening settings in new tab:', fallbackError);
+                this.showNotification('Error opening settings page', 'error');
+            }
+        }
     }
 
     openDashboard() {
