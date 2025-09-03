@@ -156,8 +156,7 @@ class ContentModerator {
                         sendResponse({ success: true });
                         break;
                     case 'block':
-                        this.blockUser();
-                        sendResponse({ success: true });
+                        sendResponse(this.blockUser());
                         break;
                     case 'getToxicityScore':
                         sendResponse({ score: this.toxicityScore });
@@ -719,8 +718,10 @@ class ContentModerator {
         const userElement = document.querySelector('.moderation-user-info:hover');
         if (userElement) {
             this.performQuickAction('block', { name: 'User Block', severity: 'high' });
+            return { success: true };
         } else {
             this.showActionFeedback('block', 'Please hover over a user element to block');
+            return { success: false, error: 'Please hover over a user element to block' };
         }
     }
 

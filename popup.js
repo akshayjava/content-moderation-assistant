@@ -97,89 +97,115 @@ class ModerationPopup {
                     console.log('Test status set successfully');
                 }
             }
+            
+            // Test if buttons are clickable
+            const flagBtn = document.getElementById('flagBtn');
+            if (flagBtn) {
+                console.log('Flag button found, testing clickability...');
+                // Simulate a click to test if event listeners are working
+                try {
+                    flagBtn.click();
+                    console.log('✅ Flag button click test successful');
+                } catch (error) {
+                    console.error('❌ Flag button click test failed:', error);
+                }
+            } else {
+                console.error('❌ Flag button not found');
+            }
         }, 2000);
     }
 
     setupEventListeners() {
         console.log('Setting up event listeners...');
         
+        // Helper function to safely add event listeners
+        const safeAddEventListener = (id, event, handler) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener(event, handler);
+                console.log(`✅ Event listener added for ${id}`);
+                return true;
+            } else {
+                console.error(`❌ Element not found: ${id}`);
+                return false;
+            }
+        };
+        
         // Quick action buttons
-        document.getElementById('flagBtn').addEventListener('click', () => this.performAction('flag'));
-        document.getElementById('escalateBtn').addEventListener('click', () => this.performAction('escalate'));
-        document.getElementById('blockBtn').addEventListener('click', () => this.performAction('block'));
+        safeAddEventListener('flagBtn', 'click', () => this.performAction('flag'));
+        safeAddEventListener('escalateBtn', 'click', () => this.performAction('escalate'));
+        safeAddEventListener('blockBtn', 'click', () => this.performAction('block'));
 
         // Timer controls
-        document.getElementById('startTimer').addEventListener('click', () => this.toggleTimer());
-        document.getElementById('resetTimer').addEventListener('click', () => this.resetTimer());
+        safeAddEventListener('startTimer', 'click', () => this.toggleTimer());
+        safeAddEventListener('resetTimer', 'click', () => this.resetTimer());
 
         // Quick controls
-        document.getElementById('toggleImageFilter').addEventListener('click', () => this.toggleImageFilter());
-        document.getElementById('quickGrayscale').addEventListener('input', (e) => this.updateQuickGrayscale(e));
+        safeAddEventListener('toggleImageFilter', 'click', () => this.toggleImageFilter());
+        safeAddEventListener('quickGrayscale', 'input', (e) => this.updateQuickGrayscale(e));
 
         // Settings
         const openSettingsBtn = document.getElementById('openSettings');
         console.log('Settings button element:', openSettingsBtn);
         if (openSettingsBtn) {
-            // Test if button is clickable
-            console.log('Button style:', window.getComputedStyle(openSettingsBtn));
-            console.log('Button disabled:', openSettingsBtn.disabled);
-            console.log('Button pointer-events:', window.getComputedStyle(openSettingsBtn).pointerEvents);
-            
             openSettingsBtn.addEventListener('click', (e) => {
                 console.log('Settings button clicked!', e);
                 e.preventDefault();
                 e.stopPropagation();
                 this.openSettings();
             });
-            console.log('Settings button event listener added');
-            
-            // Also try adding a mousedown event to test
-            openSettingsBtn.addEventListener('mousedown', () => {
-                console.log('Settings button mousedown detected');
-            });
+            console.log('✅ Settings button event listener added');
         } else {
-            console.error('Settings button not found');
+            console.error('❌ Settings button not found');
         }
         
-        document.getElementById('openDashboard').addEventListener('click', () => this.openDashboard());
-        document.getElementById('refreshMetrics').addEventListener('click', () => this.refreshMetrics());
+        safeAddEventListener('openDashboard', 'click', () => this.openDashboard());
+        safeAddEventListener('refreshMetrics', 'click', () => this.refreshMetrics());
         
         // Test button
-        document.getElementById('testButton').addEventListener('click', () => {
+        safeAddEventListener('testButton', 'click', () => {
             alert('Test button works!');
         });
 
         // Mindful moment
-        document.getElementById('mindfulMoment').addEventListener('click', () => this.showMindfulMoment());
+        safeAddEventListener('mindfulMoment', 'click', () => this.showMindfulMoment());
         
         // AI configuration
-        document.getElementById('configureAI').addEventListener('click', () => this.openPolicyManager());
+        safeAddEventListener('configureAI', 'click', () => this.openPolicyManager());
         
         // Content script reload
-        document.getElementById('reloadContentScript').addEventListener('click', () => this.reloadContentScript());
+        safeAddEventListener('reloadContentScript', 'click', () => this.reloadContentScript());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+        
+        console.log('Event listeners setup completed');
     }
 
     async performAction(action) {
+        console.log(`🚀 performAction called with action: ${action}`);
         try {
             // Send message to content script
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            console.log('Active tab:', tab);
             
             if (!tab) {
+                console.error('No active tab found');
                 this.showNotification('No active tab found', 'error');
                 return;
             }
 
             // Check if content scripts are supported on this page
-            if (!(await this.isContentScriptSupported(tab))) {
+            const isSupported = await this.isContentScriptSupported(tab);
+            console.log('Content script supported:', isSupported);
+            if (!isSupported) {
                 this.showNotification(`${action.charAt(0).toUpperCase() + action.slice(1)} action is not supported on this page. Please navigate to a regular webpage.`, 'error');
                 return;
             }
 
             // Check if content script is actually loaded
             const isLoaded = await this.checkContentScriptLoaded(tab);
+            console.log('Content script loaded:', isLoaded);
             if (!isLoaded) {
                 this.showNotification('Content script not loaded. Please refresh the page and try again.', 'error');
                 return;
@@ -208,6 +234,7 @@ class ModerationPopup {
             }
 
             if (response && response.success) {
+                console.log('Action successful, updating metrics...');
                 // Send action to background script for proper tracking
                 await chrome.runtime.sendMessage({
                     type: 'moderationAction',
@@ -224,8 +251,10 @@ class ModerationPopup {
                 this.updateMetricsDisplay();
                 
                 this.showNotification(`${action.charAt(0).toUpperCase() + action.slice(1)} action performed successfully`);
+                console.log('✅ Action completed successfully');
             } else {
-                this.showNotification(`Failed to perform ${action} action`, 'error');
+                console.error('Action failed:', response);
+                this.showNotification(response?.error || `Failed to perform ${action} action`, 'error');
             }
         } catch (error) {
             console.error('Error performing action:', error);
@@ -947,5 +976,14 @@ window.openSettings = function() {
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - initializing popup');
     new ModerationPopup();
 });
+
+// Also try to initialize immediately if DOM is already ready
+if (document.readyState === 'loading') {
+    console.log('DOM still loading, waiting for DOMContentLoaded');
+} else {
+    console.log('DOM already ready, initializing popup immediately');
+    new ModerationPopup();
+}
