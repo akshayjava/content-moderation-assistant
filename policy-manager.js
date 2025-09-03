@@ -229,8 +229,19 @@ class PolicyManager {
 
     updateApiStatus(status = null) {
         const statusElement = document.getElementById('apiStatus');
+        
+        if (!statusElement) {
+            console.error('API status element not found');
+            return;
+        }
+        
         const statusDot = statusElement.querySelector('.status-dot');
         const statusText = statusElement.querySelector('.status-text');
+        
+        if (!statusText) {
+            console.error('API status text element not found');
+            return;
+        }
 
         if (status === 'connected') {
             statusElement.className = 'status-indicator connected';

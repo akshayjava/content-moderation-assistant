@@ -41,6 +41,12 @@ class ModerationPopup {
         this.updateUI();
         this.startMetricsTracking();
         this.startMetricsRefresh();
+        
+        // Retry status checks after a delay to ensure they update
+        setTimeout(() => {
+            this.checkAIStatus();
+            this.checkContentScriptStatus();
+        }, 1000);
     }
 
     setupEventListeners() {
@@ -377,23 +383,50 @@ class ModerationPopup {
 
     async checkAIStatus() {
         try {
+            console.log('Checking AI status...');
             const result = await chrome.storage.sync.get(['geminiApiKey']);
+            console.log('AI status result:', result);
+            
+            // Wait a bit for DOM to be ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             const statusElement = document.getElementById('aiStatus');
+            console.log('AI status element:', statusElement);
+            
+            if (!statusElement) {
+                console.error('AI status element not found, retrying...');
+                // Retry after a longer delay
+                setTimeout(() => this.checkAIStatus(), 500);
+                return;
+            }
+            
             const statusText = statusElement.querySelector('.status-text');
+            console.log('AI status text element:', statusText);
+            
+            if (!statusText) {
+                console.error('AI status text element not found');
+                return;
+            }
             
             if (result.geminiApiKey) {
+                console.log('AI is configured');
                 statusElement.className = 'status-indicator connected';
                 statusText.textContent = 'Configured';
             } else {
+                console.log('AI is not configured');
                 statusElement.className = 'status-indicator';
                 statusText.textContent = 'Not configured';
             }
         } catch (error) {
             console.error('Error checking AI status:', error);
             const statusElement = document.getElementById('aiStatus');
-            const statusText = statusElement.querySelector('.status-text');
-            statusElement.className = 'status-indicator error';
-            statusText.textContent = 'Error';
+            if (statusElement) {
+                const statusText = statusElement.querySelector('.status-text');
+                if (statusText) {
+                    statusElement.className = 'status-indicator error';
+                    statusText.textContent = 'Error';
+                }
+            }
         }
     }
 
@@ -454,7 +487,18 @@ class ModerationPopup {
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             const statusElement = document.getElementById('contentScriptStatus');
+            
+            if (!statusElement) {
+                console.error('Content script status element not found');
+                return;
+            }
+            
             const statusText = statusElement.querySelector('.status-text');
+            
+            if (!statusText) {
+                console.error('Content script status text element not found');
+                return;
+            }
             
             if (!tab) {
                 statusElement.className = 'status-indicator error';
