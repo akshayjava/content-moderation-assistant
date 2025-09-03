@@ -332,6 +332,20 @@ h2 {
     background: #7f8c8d;
 }
 
+/* Content Script Status */
+.content-script-status {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.content-script-status h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
 .quick-controls {
     padding: 16px;
     background: rgba(255, 255, 255, 0.1);

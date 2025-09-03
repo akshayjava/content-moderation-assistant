@@ -36,6 +36,7 @@ class ModerationPopup {
         await this.loadImageFilterSettings();
         await this.checkAIStatus();
         await this.checkImageFilterCompatibility();
+        await this.checkContentScriptStatus();
         this.setupEventListeners();
         this.updateUI();
         this.startMetricsTracking();
@@ -66,6 +67,9 @@ class ModerationPopup {
         
         // AI configuration
         document.getElementById('configureAI').addEventListener('click', () => this.openPolicyManager());
+        
+        // Content script reload
+        document.getElementById('reloadContentScript').addEventListener('click', () => this.reloadContentScript());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -87,15 +91,28 @@ class ModerationPopup {
                 return;
             }
 
+            // Check if content script is actually loaded
+            const isLoaded = await this.checkContentScriptLoaded(tab);
+            if (!isLoaded) {
+                this.showNotification('Content script not loaded. Please refresh the page and try again.', 'error');
+                return;
+            }
+
             let response;
             try {
+                console.log('Sending message to tab:', tab.id, 'URL:', tab.url);
                 response = await chrome.tabs.sendMessage(tab.id, {
                     action: action,
                     timestamp: Date.now()
                 });
+                console.log('Response received:', response);
             } catch (messageError) {
                 console.error('Message error:', messageError);
-                if (messageError.message.includes('receiving end does not exist')) {
+                console.log('Tab URL:', tab.url);
+                console.log('Tab ID:', tab.id);
+                
+                if (messageError.message.includes('receiving end does not exist') || 
+                    messageError.message.includes('Could not establish connection')) {
                     this.showNotification('Content script not loaded. Please refresh the page and try again.', 'error');
                 } else {
                     this.showNotification(`Failed to communicate with page: ${messageError.message}`, 'error');
@@ -398,6 +415,80 @@ class ModerationPopup {
         if (!url) return false;
         
         return !unsupportedProtocols.some(protocol => url.startsWith(protocol));
+    }
+
+    async checkContentScriptLoaded(tab) {
+        try {
+            // Try to ping the content script to see if it's loaded
+            const response = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+            return response && response.success;
+        } catch (error) {
+            console.log('Content script not loaded:', error.message);
+            return false;
+        }
+    }
+
+    async checkContentScriptStatus() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const statusElement = document.getElementById('contentScriptStatus');
+            const statusText = statusElement.querySelector('.status-text');
+            
+            if (!tab) {
+                statusElement.className = 'status-indicator error';
+                statusText.textContent = 'No active tab';
+                return;
+            }
+
+            if (!(await this.isContentScriptSupported(tab))) {
+                statusElement.className = 'status-indicator error';
+                statusText.textContent = 'Not supported on this page';
+                return;
+            }
+
+            const isLoaded = await this.checkContentScriptLoaded(tab);
+            if (isLoaded) {
+                statusElement.className = 'status-indicator connected';
+                statusText.textContent = 'Loaded and ready';
+            } else {
+                statusElement.className = 'status-indicator error';
+                statusText.textContent = 'Not loaded - refresh page';
+            }
+        } catch (error) {
+            console.error('Error checking content script status:', error);
+            const statusElement = document.getElementById('contentScriptStatus');
+            const statusText = statusElement.querySelector('.status-text');
+            statusElement.className = 'status-indicator error';
+            statusText.textContent = 'Error checking status';
+        }
+    }
+
+    async reloadContentScript() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            
+            if (!tab) {
+                this.showNotification('No active tab found', 'error');
+                return;
+            }
+
+            if (!(await this.isContentScriptSupported(tab))) {
+                this.showNotification('Content script is not supported on this page', 'error');
+                return;
+            }
+
+            // Reload the tab to reload the content script
+            await chrome.tabs.reload(tab.id);
+            this.showNotification('Page reloaded to reload content script', 'success');
+            
+            // Wait a moment and check status again
+            setTimeout(() => {
+                this.checkContentScriptStatus();
+            }, 2000);
+        } catch (error) {
+            console.error('Error reloading content script:', error);
+            this.showNotification('Error reloading content script', 'error');
+        }
     }
 
     async updateQuickGrayscale(event) {

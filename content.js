@@ -113,6 +113,9 @@ class ContentModerator {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             try {
                 switch (request.action) {
+                    case 'ping':
+                        sendResponse({ success: true, message: 'Content script is loaded' });
+                        break;
                     case 'flag':
                         console.log('Content script received flag action');
                         this.flagContent();
