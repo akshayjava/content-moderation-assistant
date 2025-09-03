@@ -1,6 +1,9 @@
 // Content Moderation Assistant - Content Script
+console.log('Content script loading...');
+
 class ContentModerator {
     constructor() {
+        console.log('ContentModerator constructor called');
         this.rules = [];
         this.highlightedElements = [];
         this.toxicityScore = 0;
@@ -13,13 +16,26 @@ class ContentModerator {
     }
 
     async init() {
-        await this.loadRules();
-        await this.loadSettings();
-        await this.initializeGeminiAnalyzer();
-        this.setupMessageListener();
-        this.analyzePage();
-        this.createFloatingToolbar();
-        this.setupKeyboardShortcuts();
+        console.log('ContentModerator init started');
+        try {
+            await this.loadRules();
+            console.log('Rules loaded');
+            await this.loadSettings();
+            console.log('Settings loaded');
+            await this.initializeGeminiAnalyzer();
+            console.log('Gemini analyzer initialized');
+            this.setupMessageListener();
+            console.log('Message listener setup');
+            this.analyzePage();
+            console.log('Page analysis started');
+            this.createFloatingToolbar();
+            console.log('Floating toolbar created');
+            this.setupKeyboardShortcuts();
+            console.log('Keyboard shortcuts setup');
+            console.log('ContentModerator init completed successfully');
+        } catch (error) {
+            console.error('Error in ContentModerator init:', error);
+        }
     }
 
     async loadRules() {
@@ -110,10 +126,13 @@ class ContentModerator {
     }
 
     setupMessageListener() {
+        console.log('Setting up message listener...');
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            console.log('Message received:', request.action);
             try {
                 switch (request.action) {
                     case 'ping':
+                        console.log('Ping received, responding...');
                         sendResponse({ success: true, message: 'Content script is loaded' });
                         break;
                     case 'flag':
@@ -850,8 +869,18 @@ class ContentModerator {
 }
 
 // Initialize content moderator when page loads
+console.log('Content script initialization starting...');
+console.log('Document ready state:', document.readyState);
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new ContentModerator());
+    console.log('Document still loading, waiting for DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOMContentLoaded fired, creating ContentModerator...');
+        window.contentModerator = new ContentModerator();
+        console.log('ContentModerator instance created and assigned to window.contentModerator');
+    });
 } else {
-    new ContentModerator();
+    console.log('Document already loaded, creating ContentModerator immediately...');
+    window.contentModerator = new ContentModerator();
+    console.log('ContentModerator instance created and assigned to window.contentModerator');
 }

@@ -477,9 +477,19 @@ class ModerationPopup {
                 return;
             }
 
-            // Reload the tab to reload the content script
-            await chrome.tabs.reload(tab.id);
-            this.showNotification('Page reloaded to reload content script', 'success');
+            // Try to inject the content script manually first
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['content.js']
+                });
+                this.showNotification('Content script injected successfully', 'success');
+            } catch (injectError) {
+                console.log('Manual injection failed, reloading page:', injectError);
+                // If manual injection fails, reload the tab
+                await chrome.tabs.reload(tab.id);
+                this.showNotification('Page reloaded to reload content script', 'success');
+            }
             
             // Wait a moment and check status again
             setTimeout(() => {
