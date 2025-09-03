@@ -34,6 +34,7 @@ class ModerationPopup {
         await this.loadSettings();
         await this.loadMetrics();
         await this.loadImageFilterSettings();
+        await this.checkAIStatus();
         this.setupEventListeners();
         this.updateUI();
         this.startMetricsTracking();
@@ -61,6 +62,9 @@ class ModerationPopup {
 
         // Mindful moment
         document.getElementById('mindfulMoment').addEventListener('click', () => this.showMindfulMoment());
+        
+        // AI configuration
+        document.getElementById('configureAI').addEventListener('click', () => this.openPolicyManager());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -307,6 +311,32 @@ class ModerationPopup {
         } catch (error) {
             console.error('Error loading image filter settings:', error);
         }
+    }
+
+    async checkAIStatus() {
+        try {
+            const result = await chrome.storage.sync.get(['geminiApiKey']);
+            const statusElement = document.getElementById('aiStatus');
+            const statusText = statusElement.querySelector('.status-text');
+            
+            if (result.geminiApiKey) {
+                statusElement.className = 'status-indicator connected';
+                statusText.textContent = 'Configured';
+            } else {
+                statusElement.className = 'status-indicator';
+                statusText.textContent = 'Not configured';
+            }
+        } catch (error) {
+            console.error('Error checking AI status:', error);
+            const statusElement = document.getElementById('aiStatus');
+            const statusText = statusElement.querySelector('.status-text');
+            statusElement.className = 'status-indicator error';
+            statusText.textContent = 'Error';
+        }
+    }
+
+    openPolicyManager() {
+        chrome.tabs.create({ url: chrome.runtime.getURL('policy-manager.html') });
     }
 
     async updateQuickGrayscale(event) {

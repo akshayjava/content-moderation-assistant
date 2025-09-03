@@ -20,6 +20,7 @@ class PolicyManager {
         
         this.setupEventListeners();
         await this.loadSettings();
+        await this.loadApiKey();
         this.renderGeneralPolicies();
         this.renderCustomPolicies();
         this.updateApiStatus();
@@ -95,6 +96,22 @@ class PolicyManager {
         }
     }
 
+    async loadApiKey() {
+        try {
+            const result = await chrome.storage.sync.get(['geminiApiKey']);
+            if (result.geminiApiKey) {
+                this.geminiAnalyzer.apiKey = result.geminiApiKey;
+                // Update the API key input field to show it's configured (but don't show the actual key)
+                const apiKeyInput = document.getElementById('apiKey');
+                if (apiKeyInput) {
+                    apiKeyInput.value = '••••••••••••••••'; // Show dots to indicate it's configured
+                }
+            }
+        } catch (error) {
+            console.error('Error loading API key:', error);
+        }
+    }
+
     async saveSettings() {
         try {
             await chrome.storage.sync.set({ policyManagerSettings: this.settings });
@@ -114,13 +131,24 @@ class PolicyManager {
 
     async saveApiKey() {
         const apiKey = document.getElementById('apiKey').value.trim();
-        if (!apiKey) {
-            this.showNotification('Please enter an API key', 'error');
+        if (!apiKey || apiKey === '••••••••••••••••') {
+            this.showNotification('Please enter a new API key', 'error');
             return;
         }
 
         try {
-            await this.geminiAnalyzer.setApiKey(apiKey);
+            // Save to storage
+            await chrome.storage.sync.set({ geminiApiKey: apiKey });
+            
+            // Set in analyzer
+            this.geminiAnalyzer.apiKey = apiKey;
+            
+            // Update UI to show it's configured
+            const apiKeyInput = document.getElementById('apiKey');
+            if (apiKeyInput) {
+                apiKeyInput.value = '••••••••••••••••';
+            }
+            
             this.updateApiStatus();
             this.showNotification('API key saved successfully!', 'success');
         } catch (error) {
@@ -156,6 +184,12 @@ class PolicyManager {
     toggleApiKeyVisibility() {
         const input = document.getElementById('apiKey');
         const button = document.getElementById('toggleApiKey');
+        
+        // If the input shows dots, it means the API key is already configured
+        if (input.value === '••••••••••••••••') {
+            this.showNotification('API key is already configured. Enter a new key to replace it.', 'info');
+            return;
+        }
         
         if (input.type === 'password') {
             input.type = 'text';
