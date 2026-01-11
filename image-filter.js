@@ -50,6 +50,7 @@ class ImageFilter {
 
     setupMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            let isResponseAsync = false;
             try {
                 switch (request.action) {
                     case 'toggleImageFilter':
@@ -67,14 +68,12 @@ class ImageFilter {
                         this.clearAllFilters();
                         sendResponse({ success: true });
                         break;
-                    default:
-                        sendResponse({ success: false, error: 'Unknown action' });
                 }
             } catch (error) {
                 console.error('Error in image filter message handler:', error);
                 sendResponse({ success: false, error: error.message });
             }
-            return true; // Keep message channel open for async response
+            return isResponseAsync;
         });
     }
 

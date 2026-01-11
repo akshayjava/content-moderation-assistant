@@ -129,6 +129,7 @@ class ContentModerator {
         console.log('Setting up message listener...');
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.log('Message received:', request.action);
+            let isResponseAsync = false;
             try {
                 switch (request.action) {
                     case 'ping':
@@ -167,7 +168,8 @@ class ContentModerator {
                         break;
                     case 'analyzeWithAI':
                         this.performAIAnalysis().then(result => sendResponse(result));
-                        return true; // Keep message channel open for async response
+                        isResponseAsync = true;
+                        break;
                     case 'getAIAnalysis':
                         sendResponse({ analysis: this.aiAnalysisResults });
                         break;
@@ -201,13 +203,12 @@ class ContentModerator {
                             sendResponse({ success: false, error: 'Image filter not available' });
                         }
                         break;
-                    default:
-                        sendResponse({ success: false, error: 'Unknown action' });
                 }
             } catch (error) {
                 console.error('Error in content script message handler:', error);
                 sendResponse({ success: false, error: error.message });
             }
+            return isResponseAsync;
         });
     }
 

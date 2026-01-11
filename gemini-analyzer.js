@@ -324,56 +324,63 @@ Respond only with valid JSON.`;
         }
     }
 
+    _extractContentFromPage() {
+        // Extract main content, avoiding navigation, ads, etc.
+        const contentSelectors = [
+            'main', 'article', '.content', '.post', '.comment',
+            '.message', '.text', 'p', 'div[role="main"]'
+        ];
+        
+        let content = '';
+        let title = document.title;
+        
+        // Try to find main content
+        for (const selector of contentSelectors) {
+            const elements = document.querySelectorAll(selector);
+            for (const element of elements) {
+                const text = element.textContent?.trim();
+                if (text && text.length > 50) {
+                    content += text + '\n';
+                }
+            }
+        }
+        
+        // Fallback to body content
+        if (!content) {
+            content = document.body.textContent || '';
+        }
+        
+        // Clean up the content
+        content = content
+            .replace(/\s+/g, ' ')
+            .replace(/\n\s*\n/g, '\n')
+            .trim();
+        
+        return {
+            text: content,
+            title: title,
+            url: window.location.href,
+            wordCount: content.split(/\s+/).length,
+            charCount: content.length
+        };
+    }
+
     async extractPageContent(tabId) {
         try {
-            // Check if scripting API is available
+            // If called from a content script, tabId will be undefined.
+            if (!tabId) {
+                return this._extractContentFromPage();
+            }
+
+            // If called from a background script or popup, use scripting API.
             if (!chrome.scripting || !chrome.scripting.executeScript) {
                 console.warn('Chrome scripting API not available for content extraction');
-                return null;
+                return { text: '', title: '', url: '', wordCount: 0, charCount: 0 };
             }
             
             const results = await chrome.scripting.executeScript({
                 target: { tabId: tabId },
-                func: () => {
-                    // Extract main content, avoiding navigation, ads, etc.
-                    const contentSelectors = [
-                        'main', 'article', '.content', '.post', '.comment',
-                        '.message', '.text', 'p', 'div[role="main"]'
-                    ];
-                    
-                    let content = '';
-                    let title = document.title;
-                    
-                    // Try to find main content
-                    for (const selector of contentSelectors) {
-                        const elements = document.querySelectorAll(selector);
-                        for (const element of elements) {
-                            const text = element.textContent?.trim();
-                            if (text && text.length > 50) {
-                                content += text + '\n';
-                            }
-                        }
-                    }
-                    
-                    // Fallback to body content
-                    if (!content) {
-                        content = document.body.textContent || '';
-                    }
-                    
-                    // Clean up the content
-                    content = content
-                        .replace(/\s+/g, ' ')
-                        .replace(/\n\s*\n/g, '\n')
-                        .trim();
-                    
-                    return {
-                        text: content,
-                        title: title,
-                        url: window.location.href,
-                        wordCount: content.split(/\s+/).length,
-                        charCount: content.length
-                    };
-                }
+                func: this._extractContentFromPage
             });
             
             return results[0]?.result || { text: '', title: '', url: '', wordCount: 0, charCount: 0 };
@@ -386,12 +393,14 @@ Respond only with valid JSON.`;
     async getURLContext(url, tab) {
         try {
             const urlObj = new URL(url);
+            const pageTitle = (tab && tab.title) ? tab.title : document.title;
+
             return {
                 domain: urlObj.hostname,
                 path: urlObj.pathname,
                 protocol: urlObj.protocol,
-                title: tab.title,
-                type: this.detectContentType(url, tab.title),
+                title: pageTitle || 'Unknown',
+                type: this.detectContentType(url, pageTitle || 'Unknown'),
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString()
             };
